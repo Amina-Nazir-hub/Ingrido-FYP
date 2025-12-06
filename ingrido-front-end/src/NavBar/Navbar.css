@@ -4,13 +4,16 @@
 }
 
 .title {
-  font-family: "Poppins", sans-serif;
   font-weight: 700;
-  font-style: normal;
   font-size: 24px;
+  height: 32px;
+  line-height: 32px;
 }
 .centerLinks {
-  font-size: 18px;
+  font-size: 16px;
+  height: 24px;
+  line-height: 24px;
+  font-weight: 400;
 }
 
 .centerLinks:hover {
@@ -21,7 +24,7 @@
   background-color: #ff7161;
   color: white;
   border-radius: 9999px;
-  font-size: 20px;
+  font-size: 16px;
   height: 40px;
   line-height: 24px;
   padding: 6px 24px;

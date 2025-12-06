@@ -1,5 +1,20 @@
-.home{
-    background-color: #FFEBEB;
-    padding: 128px 16px 80px;
-    height: 628px;
+.home {
+  background-color: #ffebeb;
+  padding: 128px 16px 80px;
+  height: 628px;
+}
+
+.tagline-pill {
+  font-weight: 500;
+  color: #CC1400;
+  font-size: 14px;
+  line-height: 20px;
+  background-color: #ffdfdc;
+  display: inline-flex;
+  height: 36px;
+  line-height: 24px;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 8px;
+  padding: 8px 16px;
 }
