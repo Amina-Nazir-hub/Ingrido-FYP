@@ -1,12 +1,8 @@
-import { Navbar } from "./components/NavBar" 
-import { Footer } from "./components/Footer"
-import { MainLayout } from "./layouts/LandingLayout"
+import { LandingPage } from "./pages/LandingPage"
 function App() {
   return (
     <>
-    <Navbar/>
-    <MainLayout />
-    <Footer/>
+    <LandingPage/>
     </>
   )
 }
