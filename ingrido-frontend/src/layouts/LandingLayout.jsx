@@ -35,8 +35,8 @@ export function MainLayout() {
             </p>
 
             <div className="flex flex-wrap gap-4 mb-12 animate-fade-up [animation-delay:0.3s]">
-              <a href="/signup">
-                <button className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-bold shadow-lg hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 h-14 rounded-xl px-10 text-lg">
+              <a href="/register">
+                <button className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground font-bold shadow-lg hover:bg-secondary hover:-translate-y-1 hover:scale-[1.02] transition-all duration-300 h-14 rounded-xl px-10 text-lg">
                   Get Started
                   <ArrowRight className="w-5 h-5" />
                 </button>
@@ -104,7 +104,7 @@ export function MainLayout() {
             </p>
             <a
               className="inline-flex items-center justify-center gap-2 bg-secondary text-secondary-foreground font-bold hover:bg-secondary/90 transition-all duration-300 h-12 rounded-xl px-8 text-lg shadow-lg hover:-translate-y-0.5"
-              href="/signup"
+              href="/register"
             >
               Create Your Profile
               <ArrowRight className="h-5 w-5" />

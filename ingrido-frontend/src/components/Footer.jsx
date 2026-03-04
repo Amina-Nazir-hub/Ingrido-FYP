@@ -4,8 +4,7 @@ export function Footer() {
   return (
     <footer className="bg-card border-t border-border py-8 md:py-12">
       <div className="container mx-auto px-4">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-          
+        <div className="flex flex-col md:flex-row justify-between items-center gap-6">         
           {/* Left Side: Brand */}
           <div className="flex items-center gap-2 group cursor-pointer">
             <div className="p-2 bg-primary rounded-lg group-hover:bg-primary/20 transition-colors">
@@ -24,7 +23,6 @@ export function Footer() {
               <span className="block md:inline mt-1 md:mt-0">All rights reserved.</span>
             </p>
           </div>
-
         </div>
       </div>
     </footer>
