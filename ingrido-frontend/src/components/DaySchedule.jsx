@@ -1,10 +1,9 @@
 import React from 'react';
 import MealCard from './MealCard';
-import { Card } from "../userinterface/Card"; // Card import karein
+import { Card } from "../userinterface/Card"; 
 
 export function DaySchedule({ dayData }) {
   return (
-    // Poora din ek Card ke andar
     <Card className="mb-8 overflow-hidden shadow-md border-border/40">
       <div className="bg-primary px-6 py-3">
         <h2 className="text-white font-bold text-lg">{dayData.day}</h2>
