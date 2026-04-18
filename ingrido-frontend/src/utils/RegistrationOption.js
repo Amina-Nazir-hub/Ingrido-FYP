@@ -1,17 +1,10 @@
 export const HEALTH_OPTIONS = [
   "Diabetes",
   "High Blood Pressure",
-  "Heart Disease",
-  "Allergies",
-  "Gluten Intolerance",
-  "Lactose Intolerance",
+  "Heart Disease"
 ];
 
 export const DIET_OPTIONS = [
   "Vegetarian",
-  "Vegan",
-  "Pescatarian",
-  "Keto",
-  "Low Carb",
-  "High Protein",
+  "Non-Vegetarian"
 ];

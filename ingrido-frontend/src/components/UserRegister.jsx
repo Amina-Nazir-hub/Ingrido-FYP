@@ -1,4 +1,4 @@
-import { User,  MapPin, Heart, Salad, ArrowRight, Mail, Lock } from "lucide-react";
+import { User, Heart, Salad, ArrowRight, Mail, Lock } from "lucide-react";
 import { useRegisterForm } from "../hooks/UserRegisterForm";
 import { HEALTH_OPTIONS, DIET_OPTIONS } from "../utils/RegistrationOption";
 
@@ -15,7 +15,7 @@ export function UserRegister() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               {/* Name */}
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2 text-foreground">
@@ -48,7 +48,7 @@ export function UserRegister() {
               </div>
 
               {/* Password */}
-              <div className="space-y-2">
+              <div className="space-y-2 ">
                 <label className="text-sm font-medium flex items-center gap-2 text-foreground">
                   <Lock className="h-4 w-4 text-secondary" /> Password *
                 </label>
@@ -62,20 +62,6 @@ export function UserRegister() {
                   required
                 />
               </div>
-
-              {/* City */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium flex items-center gap-2 text-foreground">
-                  <MapPin className="h-4 w-4 text-secondary" /> City
-                </label>
-                <input
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2.5 outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="New York"
-                />
-              </div>
             </div>
 
             <hr className="border-border my-8" />
@@ -85,7 +71,7 @@ export function UserRegister() {
               <label className="text-sm font-medium flex items-center gap-2 text-foreground">
                 <Heart className="h-4 w-4 text-secondary" /> Health Conditions
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3">
                 {HEALTH_OPTIONS.map((option) => (
                   <label key={option} className="flex items-center space-x-2 bg-background/50 p-2 rounded-md border border-transparent hover:border-border cursor-pointer transition-colors">
                     <input
@@ -100,12 +86,12 @@ export function UserRegister() {
               </div>
             </div>
 
-            {/* Dietary Preferences (NEWLY ADDED) */}
+            {/* Dietary Preferences */}
             <div className="space-y-4">
               <label className="text-sm font-medium flex items-center gap-2 text-foreground">
                 <Salad className="h-4 w-4 text-secondary" /> Dietary Preferences
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3">
                 {DIET_OPTIONS.map((option) => (
                   <label key={option} className="flex items-center space-x-2 bg-background/50 p-2 rounded-md border border-transparent hover:border-border cursor-pointer transition-colors">
                     <input

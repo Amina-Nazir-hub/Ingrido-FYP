@@ -15,7 +15,7 @@ export function WelcomeHero({ name }) {
 
       <div className="w-full max-w-3xl bg-card rounded-[32px] shadow-card border border-border p-2 transition-all focus-within:shadow-card-hover focus-within:border-secondary/50">
         <div className="flex items-center px-4 py-1">
-          <input
+          <textarea
             type="text"
             placeholder="Find a 15-minute dinner recipe..."
             className="w-full text-lg md:text-xl outline-none placeholder-muted-foreground text-foreground bg-transparent py-3"
