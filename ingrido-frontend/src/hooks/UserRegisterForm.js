@@ -1,17 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext"; // 1. Import the Auth hook
+import { useAuth } from "../context/AuthContext";
+import axios from "axios";
 
 export function useRegisterForm() {
   const navigate = useNavigate();
-  const { login } = useAuth(); // 2. Get the login function
+  const { login } = useAuth();
 
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
-    family: "",
-    city: "",
     healthConditions: [],
     dietaryPreferences: [],
   });
@@ -23,24 +22,34 @@ export function useRegisterForm() {
 
   const handleCheckboxChange = (category, option) => {
     setFormData((prev) => {
-      const currentList = prev[category];
-      const newList = currentList.includes(option)
-        ? currentList.filter((item) => item !== option)
-        : [...currentList, option];
-      return { ...prev, [category]: newList };
+      const currentOptions = prev[category];
+      const updatedOptions = currentOptions.includes(option)
+        ? currentOptions.filter((item) => item !== option)
+        : [...currentOptions, option];
+      return { ...prev, [category]: updatedOptions };
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Submitting Registration Data:", formData);
-    
-    // 3. Update Global Auth State
-    // This triggers the Navbar change app-wide
-    login(); 
+    try {
+      const response = await axios.post("http://127.0.0.1:8000/api/accounts/register/", {
+        first_name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        health_conditions: formData.healthConditions,
+        dietary_preferences: formData.dietaryPreferences
+      });
 
-    // 4. Redirect to Dashboard
-    navigate("/dashboard"); 
+      // Token save karna jo backend ne signup par bheja hai
+      localStorage.setItem("ingrido_token", response.data.token);
+      
+      login(); // Auth state update
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Registration Error:", error.response?.data || error.message);
+      alert("Registration failed! Email might already be in use.");
+    }
   };
 
   return { formData, handleChange, handleCheckboxChange, handleSubmit };
