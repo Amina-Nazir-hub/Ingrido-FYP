@@ -1,0 +1,17 @@
+# Core Frameworks
+Django==5.0.6
+djangorestframework==3.15.1
+
+# Database & Production
+psycopg2-binary==2.9.9
+gunicorn==21.2.0
+
+# Authentication & Security
+django-cors-headers==4.3.1
+python-dotenv==1.0.1
+djangorestframework-authtoken==2.1.1
+
+# Utilities
+whitenoise==6.6.0
+axios-api-utils==0.1.0 (Optional)
+
