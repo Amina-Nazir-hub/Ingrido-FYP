@@ -42,6 +42,11 @@ export function Navbar() {
                 <Link to="/saved" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
                   Saved Recipes
                 </Link>
+
+                {/* --- UPDATED EXPLORE CITY LINK --- */}
+                <Link to="/city" className="text-sm font text-foreground hover:text-primary transition-colors">
+                  Explore City
+                </Link>
               </nav>
             )}
 
@@ -61,7 +66,7 @@ export function Navbar() {
                 <TooltipProvider delayDuration={200}>
                   <div className="flex items-center gap-5">
                     
-                    {/* Notification Icon with Tooltip */}
+                    {/* Notification Icon */}
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="relative cursor-pointer hover:opacity-80 transition-opacity p-1">
@@ -76,7 +81,7 @@ export function Navbar() {
                       </TooltipContent>
                     </Tooltip>
 
-                    {/* User Profile Avatar with Tooltip */}
+                    {/* User Profile Avatar */}
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Link to="/profile" className="flex items-center gap-3 group">
@@ -122,6 +127,10 @@ export function Navbar() {
             <>
               <Link to="/planner" onClick={() => setIsOpen(false)} className="text-sm font-medium py-2 border-b border-border/50">Weekly Plan</Link>
               <Link to="/saved" onClick={() => setIsOpen(false)} className="text-sm font-medium py-2 border-b border-border/50">Saved Recipes</Link>
+              
+              {/* MOBILE EXPLORE CITY LINK */}
+              <Link to="/city" onClick={() => setIsOpen(false)} className="text-sm font-bold py-2 border-b border-border/50 text-primary">Explore City</Link>
+              
               <Link to="/profile" onClick={() => setIsOpen(false)} className="flex items-center gap-3 p-3 bg-muted rounded-xl mt-2">
                 <Avatar className="h-8 w-8"><AvatarFallback>U</AvatarFallback></Avatar>
                 <span className="font-medium text-sm text-foreground">My Profile</span>

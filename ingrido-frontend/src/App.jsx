@@ -7,6 +7,7 @@ import { LandingPage } from "./pages/LandingPage";
 import { Dashboard } from "./pages/DashboardPage"; 
 import { Footer } from "./components/Footer";
 import { PlannerPage } from "./pages/PlannerPage";
+import CityPage  from "./pages/CityPage";
 import NotFound from "./pages/NotFoundPage"; 
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/dashboard" element={<Dashboard />} /> 
             <Route path="/planner" element={<PlannerPage />} />
+            <Route path="/city" element={<CityPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
