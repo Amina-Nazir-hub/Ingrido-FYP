@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext"; // 1. Import the Auth hook
+import { useAuth } from "../context/AuthContext";
+import axios from "axios";
 
 export function useLoginForm() {
   const navigate = useNavigate();
-  const { login } = useAuth(); // 2. Destructure the login function from context
+  const { login } = useAuth();
 
   const [loginData, setLoginData] = useState({
     email: "",
@@ -16,18 +17,27 @@ export function useLoginForm() {
     setLoginData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Logging in...", loginData);
-    
-    // 3. Update Global State
-    // This tells the Navbar to switch from Image 1 to Image 2
-    login(); 
+    try {
+      // Backend ko login request bhejna
+      const response = await axios.post("http://127.0.0.1:8000/api/accounts/login/", {
+        email: loginData.email,
+        password: loginData.password
+      });
 
-    // 4. Redirect
-    // If you want the "Logged In" version of the landing page, 
-    // you can navigate to "/" instead of "/dashboard"
-    navigate("/dashboard"); 
+      // Token save karna
+      localStorage.setItem("ingrido_token", response.data.token);
+      
+      // Global Auth state update karna
+      login(); 
+
+      // Dashboard par redirect
+      navigate("/dashboard"); 
+    } catch (error) {
+      console.error("Login Error:", error.response?.data || error.message);
+      alert("Invalid email or password!");
+    }
   };
 
   return { loginData, handleChange, handleSubmit };
