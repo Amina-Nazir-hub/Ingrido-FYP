@@ -1,8 +1,10 @@
 import { useState } from "react";
 
 export function RecipieDetail() {
-    const [ingredient, setIngredient] = useState("");
+  const [ingredient, setIngredient] = useState("");
   const [result, setResult] = useState("");
+  const [isSaved, setIsSaved] = useState(false);
+  const [locationError, setLocationError] = useState(null);
 
   // Substitute logic
   const substitutes = {
@@ -21,6 +23,41 @@ export function RecipieDetail() {
     if (!key) return;
     setResult(substitutes[key] || "No direct substitute found. You might want to check PandaMart!");
   };
+  const handleSave = () => {
+    setIsSaved(!isSaved);
+    // Yahan aap console ya toast message bhi dikha sakte hain
+    if (!isSaved) {
+      console.log("Recipe saved to your collection!");
+    }
+  };
+  const handlePandaMartOrder = () => {
+    if (!navigator.geolocation) {
+      alert("Aapka browser location support nahi karta.");
+      window.open("https://www.foodpanda.pk/brand/pandamart", "_blank");
+      return;
+    }
+
+    // Browser se location mangna
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        
+        console.log(`Lat: ${lat}, Lng: ${lng}`);
+
+        // Yahan aap location ke coordinates ko URL mein ya backend par bhej sakte hain
+        // Filhal hum user ko PandaMart par redirect kar rahe hain
+        const pandaUrl = `https://www.foodpanda.pk/brand/pandamart?lat=${lat}&lng=${lng}`;
+        window.open(pandaUrl, "_blank");
+      },
+      (error) => {
+        console.error("Location Error:", error);
+        // Agar user 'Block' karde to default link khol do
+        alert("Location nahi mil saki. Hum aapko general PandaMart page par le ja rahe hain.");
+        window.open("https://www.foodpanda.pk/brand/pandamart", "_blank");
+      }
+      );
+  };
   return (
     <>
     <section className="border-b border-border bg-secondary/40 mt-20 px-2">
@@ -34,26 +71,33 @@ export function RecipieDetail() {
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-background text-foreground transition-all hover:border-primary hover:bg-primary hover:text-primary-foreground"
-              aria-label="favorite"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="h-4 w-4"
+              {/* 2. Button par onClick lagaya aur class ko dynamic kiya */}
+              <button
+                onClick={handleSave}
+                className={`flex h-11 w-11 items-center justify-center rounded-full border transition-all 
+                  ${isSaved 
+                    ? "border-primary bg-primary text-primary-foreground" 
+                    : "border-border bg-background text-foreground hover:border-primary hover:bg-primary/10"
+                  }`}
+                aria-label={isSaved ? "Remove from favorites" : "Save to favorites"}
               >
-                <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-              </svg>
-            </button>
-          </div>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  // 3. Fill property ko state ke mutabiq change kiya
+                  fill={isSaved ? "currentColor" : "none"}
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-5 w-5"
+                >
+                  <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+                </svg>
+              </button>
+            </div>
         </div>
       </div>
     </section>
@@ -369,15 +413,13 @@ export function RecipieDetail() {
 
             <div className="hidden h-8 w-[1px] bg-border md:block"></div>
 
-            <a
-              href="https://www.foodpanda.pk/brand/pandamart"
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={handlePandaMartOrder}
               className="flex items-center justify-center gap-2 rounded-xl bg-[#D70F64] px-6 py-3 text-sm font-bold text-white shadow-lg transition-all hover:opacity-90 active:scale-95"
             >
               <span className="text-lg">🛒</span>
               Order from PandaMart
-            </a>
+            </button>
           </div>
 
           {result && (
