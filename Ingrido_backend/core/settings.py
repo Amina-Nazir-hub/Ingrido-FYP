@@ -12,10 +12,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
-    # Ingrido-FYP Apps & Libraries
     'rest_framework',
-    'rest_framework.authtoken',  # Added for Token Auth
+    'rest_framework.authtoken', 
     'corsheaders',
     'accounts',
 ]
@@ -29,9 +27,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
-ROOT_URLCONF = 'core.urls' # Ensure this matches your project name
+ROOT_URLCONF = 'core.urls' 
 
 TEMPLATES = [
     {
@@ -55,7 +54,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'ingrido_db',
         'USER': 'postgres',
-        'PASSWORD': 'amna@hanu12',
+        'PASSWORD': 'anb',
         'HOST': '127.0.0.1',
         'PORT': '5432',
     }

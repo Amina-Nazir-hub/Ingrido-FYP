@@ -11,6 +11,7 @@ import CityPage from "./pages/CityPage";
 import SavedPage from "./pages/SavedPage";
 import { UserProfileSettings } from "./components/UserProfileSettings"; 
 import NotFound from "./pages/NotFoundPage";
+import { RecipieDetail } from "./pages/RecipieDetailPage";
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
             <Route path="/city" element={<CityPage />} />
             <Route path="/saved" element={<SavedPage />} />
             <Route path="/profile" element={<UserProfileSettings />} />
+            <Route path="/recpie-detail" element={<RecipieDetail  />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>

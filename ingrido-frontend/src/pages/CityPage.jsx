@@ -4,18 +4,97 @@ import { Search, Eye, MapPin } from 'lucide-react';
 const CityPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Images ko assets folder se link kiya gaya hai
   const cities = [
-    { id: 1, name: 'Karachi', dishes: '50+', region: 'Sindh', selected: 120, img: '/assets/Karachi.jpeg' },
-    { id: 2, name: 'Lahore', dishes: '45+', region: 'Punjab', selected: 150, img: '/assets/Lahore.jpeg' },
-    { id: 3, name: 'Islamabad', dishes: '25+', region: 'Capital Territory', selected: 90, img: '/assets/Islamabad.jpeg' },
-    { id: 4, name: 'Peshawar', dishes: '30+', region: 'Khyber Pakhtunkhwa', selected: 110, img: '/assets/Peshawar.jpeg' },
-    { id: 5, name: 'Quetta', dishes: '20+', region: 'Balochistan', selected: 80, img: '/assets/Quetta.jpeg' },
-    { id: 6, name: 'Multan', dishes: '18+', region: 'Punjab', selected: 100, img: '/assets/Multan.jpeg' },
-    { id: 7, name: 'Faisalabad', dishes: '22+', region: 'Punjab', selected: 95, img: '/assets/Faisalabad.jpeg' },
-    { id: 8, name: 'Sialkot', dishes: '15+', region: 'Punjab', selected: 75, img: '/assets/Sialkot.jpeg' },
-    { id: 9, name: 'Hyderabad', dishes: '20+', region: 'Sindh', selected: 85, img: '/assets/Hyderabad.jpeg' },
-    { id: 10, name: 'Skardu', dishes: '12+', region: 'Gilgit-Baltistan', selected: 130, img: '/assets/Skardu.jpeg' },
+    { 
+      id: 1, 
+      name: 'Karachi', 
+      dishes: '50+', 
+      region: 'Sindh', 
+      selected: 120, 
+      img: '/assets/Karachi.jpeg',
+      tagline: 'diverse local dishes and the best places to eat'
+    },
+    { 
+      id: 2, 
+      name: 'Lahore', 
+      dishes: '45+', 
+      region: 'Punjab', 
+      selected: 150, 
+      img: '/assets/Lahore.jpeg',
+      tagline: 'rich traditional dishes and iconic food spots'
+    },
+    { 
+      id: 3, 
+      name: 'Islamabad', 
+      dishes: '25+', 
+      region: 'Capital Territory', 
+      selected: 90, 
+      img: '/assets/Islamabad.jpeg',
+      tagline: 'modern local cuisine and top dining places'
+    },
+    { 
+      id: 4, 
+      name: 'Peshawar', 
+      dishes: '30+', 
+      region: 'Khyber Pakhtunkhwa', 
+      selected: 110, 
+      img: '/assets/Peshawar.jpeg',
+      tagline: 'traditional Pashtun dishes and authentic eateries'
+    },
+    { 
+      id: 5, 
+      name: 'Quetta', 
+      dishes: '20+', 
+      region: 'Balochistan', 
+      selected: 80, 
+      img: '/assets/Quetta.jpeg',
+      tagline: 'hearty regional dishes and popular food spots'
+    },
+    { 
+      id: 6, 
+      name: 'Multan', 
+      dishes: '18+', 
+      region: 'Punjab', 
+      selected: 100, 
+      img: '/assets/Multan.jpeg',
+      tagline: 'traditional southern dishes and local dining places'
+    },
+    { 
+      id: 7, 
+      name: 'Faisalabad', 
+      dishes: '22+', 
+      region: 'Punjab', 
+      selected: 95, 
+      img: '/assets/Faisalabad.jpeg',
+      tagline: 'flavorful local dishes and well-known food spots'
+    },
+    { 
+      id: 8, 
+      name: 'Sialkot', 
+      dishes: '15+', 
+      region: 'Punjab', 
+      selected: 75, 
+      img: '/assets/Sialkot.jpeg',
+      tagline: 'classic local dishes and trusted food spots'
+    },
+    { 
+      id: 9, 
+      name: 'Hyderabad', 
+      dishes: '20+', 
+      region: 'Sindh', 
+      selected: 85, 
+      img: '/assets/Hyderabad.jpeg',
+      tagline: 'rich Sindhi dishes and popular food destinations'
+    },
+    { 
+      id: 10, 
+      name: 'Skardu', 
+      dishes: '12+', 
+      region: 'Gilgit-Baltistan', 
+      selected: 130, 
+      img: '/assets/Skardu.jpeg',
+      tagline: 'unique mountain cuisine and scenic eateries'
+    },
   ];
 
   const filteredCities = cities.filter(city => 
@@ -70,12 +149,13 @@ const CityPage = () => {
               className="group overflow-hidden rounded-2xl border border-border bg-card shadow-card transition-all hover:shadow-card-hover hover:-translate-y-1"
             >
               <div className="relative aspect-[16/10] overflow-hidden bg-muted">
-                {/* Agar image nahi milti to fallback text nazar aayega */}
                 <img 
                   src={city.img} 
                   alt={city.name} 
                   className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                  onError={(e) => { e.target.src = 'https://via.placeholder.com/800x500?text=Image+Not+Found'; }}
+                  onError={(e) => { 
+                    e.target.src = 'https://via.placeholder.com/800x500?text=Image+Not+Found'; 
+                  }}
                 />
                 <div className="absolute top-3 right-3">
                   <span className="bg-background/90 backdrop-blur px-3 py-1 rounded-full text-[10px] font-bold uppercase border border-border shadow-sm">
@@ -83,15 +163,24 @@ const CityPage = () => {
                   </span>
                 </div>
               </div>
+
               <div className="p-6">
-                <h3 className="text-2xl font-bold font-display group-hover:text-primary transition-colors">{city.name}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">Famous for <span className="text-secondary font-bold">{city.dishes}</span> authentic local recipes.</p>
-                
+                <h3 className="text-2xl font-bold font-display group-hover:text-primary transition-colors">
+                  {city.name}
+                </h3>
+
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Famous for <span className="text-secondary font-bold">{city.tagline}</span>.
+                </p>
+
                 <div className="mt-6 flex items-center justify-between border-t border-border pt-4">
-                   <span className="text-xs text-muted-foreground italic">Explored {city.selected}k times</span>
-                   <button className="flex items-center gap-2 bg-secondary text-secondary-foreground px-4 py-2 rounded-lg text-xs font-bold hover:brightness-110 active:scale-95 transition-all">
-                     <Eye size={14} /> EXPLORE
-                   </button>
+                  <span className="text-xs text-muted-foreground italic">
+                    Explored {city.selected}k times
+                  </span>
+
+                  <button className="flex items-center gap-2 bg-secondary text-secondary-foreground px-4 py-2 rounded-lg text-xs font-bold hover:brightness-110 active:scale-95 transition-all">
+                    <Eye size={14} /> EXPLORE
+                  </button>
                 </div>
               </div>
             </div>
@@ -101,7 +190,9 @@ const CityPage = () => {
         {/* No Results State */}
         {filteredCities.length === 0 && (
           <div className="text-center py-20">
-            <p className="text-muted-foreground text-lg italic">Aapke search ke mutabiq koi city nahi mili...</p>
+            <p className="text-muted-foreground text-lg italic">
+              Aapke search ke mutabiq koi city nahi mili...
+            </p>
           </div>
         )}
       </main>
