@@ -2,15 +2,12 @@
 URL configuration for core project.
 """
 from django.contrib import admin
-<<<<<<< HEAD
-from django.urls import path, include  
-
-urlpatterns = [
-    path('admin/', admin.site.urls),
-=======
+from django.urls import path, include 
 from django.urls import path, include
 from django.conf import settings
-from django.conf.urls.static import static
+from django.conf.urls.static import static 
+
+
 
 urlpatterns = [
     # Admin Panel 
@@ -18,7 +15,7 @@ urlpatterns = [
 
     # Accounts App ke saare raste (Register, Login, Recipes)
     # Ye line React frontend ko Django views se jorti hai
->>>>>>> origin/main
+
     path('api/accounts/', include('accounts.urls')), 
 ]
 
