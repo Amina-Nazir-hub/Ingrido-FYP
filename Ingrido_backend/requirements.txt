@@ -3,7 +3,7 @@ Django==5.0.6
 djangorestframework==3.15.1
 
 # Database & Production
-psycopg2-binary==2.9.11
+psycopg2-binary==2.9.12
 gunicorn==21.2.0
 
 # Authentication & Security
@@ -12,5 +12,3 @@ python-dotenv==1.0.1
 
 # Utilities
 whitenoise==6.6.0
-
-
