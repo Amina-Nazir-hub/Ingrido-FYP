@@ -1,0 +1,32 @@
+[
+  {
+    "title": "Mediterranean Quinoa Salad",
+    "category": "Quick & Easy",
+    "kcal": 320,
+    "prep_time": "15 mins",
+    "protein": "20g",
+    "ingredients": "2 cups quinoa, 1 cup cherry tomatoes, 1/2 cup feta cheese, 1/4 cup olives, Lemon vinaigrette",
+    "instructions": "1. Cook quinoa according to package. 2. Toss with chopped vegetables. 3. Top with feta and dressing.",
+    "image": "recipes/Quinoa-Salad.jpg"
+  },
+  {
+    "title": "Grilled Salmon & Asparagus",
+    "category": "Quick & Easy",
+    "kcal": 550,
+    "prep_time": "25 mins",
+    "protein": "35g",
+    "ingredients": "1 Salmon fillet, 1 bunch asparagus, 1 tbsp olive oil, 1 lemon, Garlic",
+    "instructions": "1. Season salmon with garlic and lemon. 2. Grill for 12-15 minutes. 3. Serve with steamed asparagus.",
+    "image": "recipes/salmon.jpg"
+  },
+  {
+    "title": "Berry Chia Seed Pudding",
+    "category": "Quick & Easy",
+    "kcal": 190,
+    "prep_time": "10 mins",
+    "protein": "8g",
+    "ingredients": "3 tbsp chia seeds, 1 cup almond milk, Mixed berries, Honey",
+    "instructions": "1. Mix chia seeds and milk. 2. Refrigerate for 2 hours. 3. Top with berries.",
+    "image": "recipes/chia.jpg"
+  }
+]
