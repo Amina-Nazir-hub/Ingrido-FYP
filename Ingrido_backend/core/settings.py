@@ -13,8 +13,6 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
-    # Ingrido-FYP Apps & Libraries
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
@@ -57,7 +55,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'ingrido_db',
         'USER': 'postgres',
-        'PASSWORD': 'pakpost000',
+        'PASSWORD': 'pakpost000', # Aapka local password
         'HOST': '127.0.0.1',
         'PORT': '5432',
     }
