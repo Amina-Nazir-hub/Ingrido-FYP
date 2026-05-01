@@ -1,3 +1,8 @@
 from django.contrib import admin
+from .models import City, Recipe, SavedRecipe, UserProfile
 
-# Register your models here.
+# Models ko yahan register karein taake woh admin panel mein dikhein
+admin.site.register(City)
+admin.site.register(Recipe)
+admin.site.register(SavedRecipe)
+admin.site.register(UserProfile)
