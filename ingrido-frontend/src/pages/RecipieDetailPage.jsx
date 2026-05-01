@@ -1,453 +1,292 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import axios from "axios";
+import {
+  Loader2,
+  Heart,
+  Clock,
+  Users,
+  Flame,
+  Utensils,
+  ShoppingCart,
+} from "lucide-react";
 
 export function RecipieDetail() {
-  const [ingredient, setIngredient] = useState("");
-  const [result, setResult] = useState("");
+  const { id } = useParams(); // URL se Recipe ID lega
+  const [recipe, setRecipe] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [ingredientSearch, setIngredientSearch] = useState("");
+  const [subResult, setSubResult] = useState("");
   const [isSaved, setIsSaved] = useState(false);
-  const [locationError, setLocationError] = useState(null);
 
-  // Substitute logic
-  const substitutes = {
-    milk: "You can use yogurt, almond milk, or evaporated milk.",
-    cream: "Mix 3/4 cup milk + 1/4 cup melted butter.",
-    butter: "Use margarine, cooking oil, or ghee.",
-    chicken: "Turkey or Paneer (for a vegetarian twist) works well.",
-    yogurt: "Use sour cream or 1 cup milk + 1 tbsp lemon juice.",
-    garlic: "Use 1/8 tsp garlic powder per clove.",
-    onion: "Use shallots or 1 tsp onion powder for one small onion.",
-    cheese: "Try Gouda or Monterey Jack as an alternative to Cheddar.",
-  };
+  // ─── Backend se Recipe Data Fetch Karna ───
+  useEffect(() => {
+    const fetchDetail = async () => {
+      try {
+        const response = await axios.get(
+          `http://127.0.0.1:8000/api/accounts/recipes/${id}/`,
+        );
+        setRecipe(response.data);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching recipe details:", error);
+        setLoading(false);
+      }
+    };
+    fetchDetail();
+  }, [id]);
 
-  const handleCheck = () => {
-    const key = ingredient.toLowerCase().trim();
-    if (!key) return;
-    setResult(
-      substitutes[key] ||
-        "No direct substitute found. You might want to check PandaMart!",
+  // ─── Substitute Logic (Backend Data se) ───
+  const handleCheckSubstitute = () => {
+    const key = ingredientSearch.toLowerCase().trim();
+    if (!key || !recipe) return;
+
+    // Backend se aayi hui substitutions dictionary mein check karega
+    const findSub = recipe.substitutions[key];
+
+    setSubResult(
+      findSub ||
+        "No direct substitute found in our database. You might want to check PandaMart!",
     );
   };
-  const handleSave = () => {
-    setIsSaved(!isSaved);
-    // Yahan aap console ya toast message bhi dikha sakte hain
-    if (!isSaved) {
-      console.log("Recipe saved to your collection!");
+
+  // ─── Save/Bookmark Logic ───
+  const handleSave = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return alert("Please login to save this recipe!");
+
+    try {
+      const res = await axios.post(
+        `http://127.0.0.1:8000/api/accounts/recipes/${id}/bookmark/`,
+        {},
+        { headers: { Authorization: `Token ${token}` } },
+      );
+      setIsSaved(!isSaved);
+      alert(res.data.message);
+    } catch (err) {
+      console.error(err);
     }
   };
+
   const handlePandaMartOrder = () => {
     if (!navigator.geolocation) {
-      alert("Aapka browser location support nahi karta.");
       window.open("https://www.foodpanda.pk/brand/pandamart", "_blank");
       return;
     }
-
-    // Browser se location mangna
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-
-        console.log(`Lat: ${lat}, Lng: ${lng}`);
-
-        // Yahan aap location ke coordinates ko URL mein ya backend par bhej sakte hain
-        // Filhal hum user ko PandaMart par redirect kar rahe hain
-        const pandaUrl = `https://www.foodpanda.pk/brand/pandamart?lat=${lat}&lng=${lng}`;
-        window.open(pandaUrl, "_blank");
-      },
-      (error) => {
-        console.error("Location Error:", error);
-        // Agar user 'Block' karde to default link khol do
-        alert(
-          "Location nahi mil saki. Hum aapko general PandaMart page par le ja rahe hain.",
-        );
-        window.open("https://www.foodpanda.pk/brand/pandamart", "_blank");
-      },
-    );
+    navigator.geolocation.getCurrentPosition((position) => {
+      const { latitude, longitude } = position.coords;
+      window.open(
+        `https://www.foodpanda.pk/brand/pandamart?lat=${latitude}&lng=${longitude}`,
+        "_blank",
+      );
+    });
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!recipe)
+    return <div className="text-center py-20">Recipe not found!</div>;
+
   return (
     <>
+      {/* Hero Section */}
       <section className="border-b border-border bg-secondary/40 mt-20 px-2">
-        <div className="container py-8">
-          <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl bg-card p-6 shadow-var(--shadow-soft) md:p-8">
+        <div className="container py-8 mx-auto max-w-6xl">
+          <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl bg-card p-6 shadow-sm md:p-8">
             <div className="space-y-3">
               <h1 className="font-serif text-3xl font-bold leading-tight text-foreground md:text-4xl lg:text-5xl">
-                Chicken Reshmi Kabab{" "}
-                <span className="text-primary">with Storage</span>
+                {recipe.title}{" "}
+                <span className="text-primary text-2xl block md:inline">
+                  Traditional Style
+                </span>
               </h1>
             </div>
 
-            <div className="flex items-center gap-2">
-              {/* 2. Button par onClick lagaya aur class ko dynamic kiya */}
-              <button
-                onClick={handleSave}
-                className={`flex h-11 w-11 items-center justify-center rounded-full border transition-all 
-                  ${
-                    isSaved
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-background text-foreground hover:border-primary hover:bg-primary/10"
-                  }`}
-                aria-label={
-                  isSaved ? "Remove from favorites" : "Save to favorites"
-                }
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  // 3. Fill property ko state ke mutabiq change kiya
-                  fill={isSaved ? "currentColor" : "none"}
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-5 w-5"
-                >
-                  <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-                </svg>
-              </button>
-            </div>
+            <button
+              onClick={handleSave}
+              className={`flex h-12 w-12 items-center justify-center rounded-full border transition-all 
+                ${isSaved ? "border-primary bg-primary text-white" : "border-border bg-background hover:bg-primary/10"}`}
+            >
+              <Heart fill={isSaved ? "white" : "none"} className="h-6 w-6" />
+            </button>
           </div>
         </div>
       </section>
-      <section className="container mt-10 grid gap-10 lg:grid-cols-[1.4fr_1fr] px-2">
+
+      <section className="container mx-auto max-w-6xl mt-10 grid gap-10 lg:grid-cols-[1.4fr_1fr] px-4">
+        {/* Left: Image/Video Placeholder */}
         <div className="space-y-4">
-          <div className="relative overflow-hidden rounded-2xl bg-muted shadow-(--shadow-card)">
-            <div className="aspect-video w-full">
-              <img
-                src="/assets/kabab-hero-7_ZD7fAG.jpg"
-                alt="Chicken Reshmi Kabab with green chutney"
-                className="h-full w-full object-cover transition-opacity duration-500"
-              />
-            </div>
-
-            <button
-              aria-label="Play video"
-              className="absolute inset-0 flex items-center justify-center bg-foreground/20 transition-colors hover:bg-foreground/30"
-            >
-              <span className="flex h-20 w-28 items-center justify-center rounded-2xl bg-destructive shadow-2xl transition-transform hover:scale-110">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="ml-1 h-9 w-9 fill-primary-foreground text-primary-foreground"
-                >
-                  <polygon points="6 3 20 12 6 21 6 3" />
-                </svg>
-              </span>
-            </button>
-
-            <div className="pointer-events-none absolute left-0 right-0 top-0 flex items-start gap-3 bg-linear-to-b from-foreground/60 to-transparent p-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-linear-to-br from-primary to-primary-glow">
-                <span className="text-xs font-bold uppercase text-primary-foreground">
-                  FF
-                </span>
+          <div className="relative overflow-hidden rounded-2xl bg-muted aspect-video shadow-lg">
+            <img
+              src={recipe.image || "/assets/placeholder-food.jpg"}
+              alt={recipe.title}
+              className="h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+              <div className="bg-primary p-4 rounded-full text-white scale-125 cursor-pointer hover:scale-150 transition-transform">
+                ▶
               </div>
-              <div className="text-primary-foreground">
-                <p className="line-clamp-1 text-sm font-semibold">
-                  Chicken Reshmi Kabab with Storage Ramzan Special Recipe
-                </p>
-                <p className="text-xs opacity-80">Food Fusion</p>
-              </div>
-            </div>
-
-            <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-1.5">
-              <button className="h-2 w-6 rounded-full bg-primary transition-all" />
-              <button className="h-2 w-2 rounded-full bg-background/70 transition-all" />
-              <button className="h-2 w-2 rounded-full bg-background/70 transition-all" />
-              <button className="h-2 w-2 rounded-full bg-background/70 transition-all" />
-              <button className="h-2 w-2 rounded-full bg-background/70 transition-all" />
             </div>
           </div>
         </div>
 
+        {/* Right: Quick Stats */}
         <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-3 rounded-2xl border border-border bg-card p-4 shadow-(--shadow-soft) sm:grid-cols-4">
-            {/* Time */}
+          <div className="grid grid-cols-2 gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm sm:grid-cols-4 lg:grid-cols-2">
             <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary">
-                🕒
-              </span>
+              <Clock className="text-primary h-5 w-5" />
               <div>
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                  Prep + Cook
+                <p className="text-[10px] uppercase text-muted-foreground">
+                  Cook Time
                 </p>
-                <p className="font-semibold text-foreground">1 hr 15 min</p>
+                <p className="font-bold text-sm">{recipe.prep_time} mins</p>
               </div>
             </div>
-
-            {/* Serves */}
             <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary">
-                👥
-              </span>
+              <Users className="text-primary h-5 w-5" />
               <div>
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                <p className="text-[10px] uppercase text-muted-foreground">
                   Serves
                 </p>
-                <p className="font-semibold text-foreground">12 kababs</p>
+                <p className="font-bold text-sm">4-5 People</p>
               </div>
             </div>
-
-            {/* Difficulty */}
             <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary">
-                🔥
-              </span>
+              <Flame className="text-primary h-5 w-5" />
               <div>
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                  Difficulty
+                <p className="text-[10px] uppercase text-muted-foreground">
+                  Calories
                 </p>
-                <p className="font-semibold text-foreground">Easy</p>
+                <p className="font-bold text-sm">{recipe.kcal} kcal</p>
               </div>
             </div>
-
-            {/* Cuisine */}
             <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary">
-                🍽️
-              </span>
+              <Utensils className="text-primary h-5 w-5" />
               <div>
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">
+                <p className="text-[10px] uppercase text-muted-foreground">
                   Cuisine
                 </p>
-                <p className="font-semibold text-foreground">Pakistani</p>
+                <p className="font-bold text-sm">Pakistani</p>
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border bg-card p-6 shadow-(--shadow-soft)">
-            <h2 className="mb-3 font-serif text-xl font-bold text-foreground">
-              About this recipe
+          <div className="rounded-2xl border border-border bg-card p-6">
+            <h2 className="mb-3 font-serif text-xl font-bold">
+              About this dish
             </h2>
-
-            <p className="leading-relaxed text-foreground/80">
-              Soft, cheesy and melt-in-the-mouth — these Chicken Reshmi Kababs
-              are pure comfort food. Plus we’re showing you how to{" "}
-              <strong className="text-primary">store them</strong> so you can
-              enjoy them anytime. Perfect for Ramzan, daawats, or quick snacks.
+            <p className="text-muted-foreground leading-relaxed">
+              Experience the authentic taste of {recipe.city?.name}. This recipe
+              has been passed down through generations, ensuring a perfect
+              balance of spices and texture.
             </p>
           </div>
         </div>
       </section>
-      <section className="container mt-12 px-2">
-        <div className="rounded-2xl border border-border bg-card shadow-(--shadow-soft)">
-          <div className="grid gap-8 p-6 md:grid-cols-2 md:p-8">
-            {/* Ingredients */}
-            <div>
-              <div className="mb-6 flex items-center gap-3">
-                <span className="h-8 w-1.5 rounded-full bg-linear-to-b from-primary to-primary-glow"></span>
-                <h2 className="font-serif text-2xl font-bold text-foreground">
-                  Ingredients
-                </h2>
-              </div>
 
-              <div className="space-y-6">
-                {/* Yogurt Sauce */}
-                <div>
-                  <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-primary">
-                    Yogurt Green Sauce
-                  </h3>
-                  <ul className="space-y-2">
-                    {[
-                      "Hara dhania (Fresh coriander) — handful",
-                      "Podina (Mint leaves) — handful",
-                      "Lehsan (Garlic) — 2 cloves",
-                      "Hari mirch (Green chilli) — 1–2",
-                      "Dahi (Yogurt) — ¼ cup",
-                      "Zeera (Cumin seeds) roasted & crushed — 1 tsp",
-                      "Iodized Himalayan pink salt — ½ tsp or to taste",
-                    ].map((item, i) => (
-                      <li
-                        key={i}
-                        className="flex items-start gap-3 text-foreground/90"
-                      >
-                        <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary"></span>
-                        <span className="leading-relaxed">{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Cheese Filling */}
-                <div>
-                  <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-primary">
-                    Cheese Filling
-                  </h3>
-                  <ul className="space-y-2">
-                    {[
-                      "Cheddar cheese, grated — 100g",
-                      "Cream — 3 tbs",
-                      "Hara dhania (Fresh coriander), chopped — 1 tbs",
-                    ].map((item, i) => (
-                      <li
-                        key={i}
-                        className="flex items-start gap-3 text-foreground/90"
-                      >
-                        <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary"></span>
-                        <span className="leading-relaxed">{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {/* Chicken Kabab */}
-                <div>
-                  <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-primary">
-                    Chicken Reshmi Kabab
-                  </h3>
-                  <ul className="space-y-2">
-                    {[
-                      "Boiling water — as required",
-                      "Pyaz (Onion) — 1 large",
-                      "Boneless chicken — 1 kg (mix of breast & thigh)",
-                      "Hara dhania & Podina — handful each",
-                      "Hari mirch (Green chillies), chopped — 4–5",
-                      "Kaju powder (Cashew powder) — 3 tbs",
-                      "Bhunay chanay (Roasted gram) powder — ¼ cup",
-                      "Zeera, Elaichi & Kasuri methi — to taste",
-                      "Pink salt, Kali mirch & Safed mirch powder",
-                      "Cream — 2 tbs, Ghee — 2 tbs, Dahi — 1–2 tbs",
-                      "Adrak lehsan paste — 1½ tbs",
-                      "Cooking oil — ½ cup",
-                    ].map((item, i) => (
-                      <li
-                        key={i}
-                        className="flex items-start gap-3 text-foreground/90"
-                      >
-                        <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary"></span>
-                        <span className="leading-relaxed">{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
+      {/* Main Content: Ingredients & Directions */}
+      <section className="container mx-auto max-w-6xl mt-12 px-4">
+        <div className="rounded-2xl border border-border bg-card shadow-md overflow-hidden">
+          <div className="grid gap-0 md:grid-cols-2">
+            {/* Ingredients Side */}
+            <div className="p-6 md:p-10 border-b md:border-b-0 md:border-r border-border">
+              <h2 className="font-serif text-2xl font-bold mb-6 flex items-center gap-2">
+                <span className="w-1.5 h-8 bg-primary rounded-full"></span>{" "}
+                Ingredients
+              </h2>
+              <ul className="space-y-4">
+                {recipe.ingredients.split("\n").map((item, index) => (
+                  <li
+                    key={index}
+                    className="flex items-center gap-3 text-foreground/80"
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0"></span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
 
-            {/* Directions */}
-            <div>
-              <div className="mb-6 flex items-center gap-3">
-                <span className="h-8 w-1.5 rounded-full bg-linear-to-b from-primary to-primary-glow"></span>
-                <h2 className="font-serif text-2xl font-bold text-foreground">
-                  Directions
-                </h2>
-              </div>
-
-              <div className="space-y-6">
-                {/* Yogurt Sauce Steps */}
-                <div>
-                  <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-primary">
-                    Yogurt Green Sauce
-                  </h3>
-                  <ol className="space-y-3">
-                    <li className="flex gap-3 text-foreground/90">
-                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                        1
+            {/* Directions Side */}
+            <div className="p-6 md:p-10 bg-secondary/5">
+              <h2 className="font-serif text-2xl font-bold mb-6 flex items-center gap-2">
+                <span className="w-1.5 h-8 bg-primary rounded-full"></span>{" "}
+                Directions
+              </h2>
+              <div className="space-y-8">
+                {recipe.instructions
+                  .split("\n")
+                  .filter((s) => s.trim())
+                  .map((step, index) => (
+                    <div key={index} className="flex gap-4">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-white font-bold text-sm">
+                        {index + 1}
                       </span>
-                      <p className="pt-0.5 leading-relaxed">
-                        Blend all ingredients until smooth. Sauce is ready!
+                      <p className="text-foreground/80 leading-relaxed pt-1">
+                        {step}
                       </p>
-                    </li>
-                  </ol>
-                </div>
-
-                {/* Cheese Filling Steps */}
-                <div>
-                  <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-primary">
-                    Cheese Filling
-                  </h3>
-                  <ol className="space-y-3">
-                    <li className="flex gap-3 text-foreground/90">
-                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                        1
-                      </span>
-                      <p className="pt-0.5 leading-relaxed">
-                        Mix all ingredients well. Filling is ready!
-                      </p>
-                    </li>
-                  </ol>
-                </div>
-
-                {/* Chicken Steps */}
-                <div>
-                  <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-primary">
-                    Chicken Reshmi Kabab
-                  </h3>
-                  <ol className="space-y-3">
-                    {[
-                      "Blanch onion and set aside.",
-                      "Mix all ingredients and refrigerate for 30 minutes.",
-                      "Shape kababs with cheese filling.",
-                      "Store up to 1 month in freezer.",
-                      "Shallow fry until golden.",
-                      "Serve hot with sauce.",
-                    ].map((step, i) => (
-                      <li key={i} className="flex gap-3 text-foreground/90">
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                          {i + 1}
-                        </span>
-                        <p className="pt-0.5 leading-relaxed">{step}</p>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
+                    </div>
+                  ))}
               </div>
             </div>
           </div>
         </div>
       </section>
-      <section className="px-2">
-        <div className="mt-8 rounded-2xl border border-border bg-card p-6 shadow-(--shadow-soft)">
-          <div className="mb-6 flex items-center gap-3">
-            <span className="h-6 w-1.5 rounded-full bg-primary"></span>
-            <h2 className="font-serif text-xl font-bold text-foreground">
+
+      {/* Interactive Tools: Substitutes & PandaMart */}
+      <section className="container mx-auto max-w-6xl mt-12 px-4 mb-20">
+        <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-6 md:p-10">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold font-serif">
               Missing an Ingredient?
             </h2>
+            <p className="text-muted-foreground">
+              Find a quick substitute or order via PandaMart
+            </p>
           </div>
 
-          <div className="flex flex-col gap-4 md:flex-row md:items-center">
+          <div className="flex flex-col gap-4 md:flex-row">
             <div className="relative grow">
               <input
                 type="text"
-                placeholder="Enter missing ingredient (e.g. cream, butter)..."
-                value={ingredient}
-                onChange={(e) => setIngredient(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleCheck()}
-                className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10"
+                placeholder="e.g. yogurt, cream, butter..."
+                value={ingredientSearch}
+                onChange={(e) => setIngredientSearch(e.target.value)}
+                className="w-full rounded-xl border border-border bg-background px-5 py-4 focus:ring-2 focus:ring-primary/20 outline-none"
               />
             </div>
 
             <button
-              onClick={handleCheck}
-              className="rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-lg transition-all hover:scale-[1.02] active:scale-95"
+              onClick={handleCheckSubstitute}
+              className="bg-primary text-white px-8 py-4 rounded-xl font-bold hover:shadow-lg transition-all"
             >
               Find Substitute
             </button>
 
-            <div className="hidden h-8 w-1px bg-border md:block"></div>
-
             <button
               onClick={handlePandaMartOrder}
-              className="flex items-center justify-center gap-2 rounded-xl bg-[#D70F64] px-6 py-3 text-sm font-bold text-white shadow-lg transition-all hover:opacity-90 active:scale-95"
+              className="bg-[#D70F64] text-white px-8 py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:opacity-90"
             >
-              <span className="text-lg">🛒</span>
-              Order from PandaMart
+              <ShoppingCart size={20} /> Order on PandaMart
             </button>
           </div>
 
-          {result && (
-            <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300 rounded-lg bg-primary/5 p-4 text-sm text-foreground">
-              <strong className="text-primary">Suggestion:</strong> {result}
+          {subResult && (
+            <div className="mt-6 p-4 bg-white rounded-lg border border-primary/20 animate-in fade-in slide-in-from-top-2">
+              <span className="font-bold text-primary">
+                Chef's Suggestion:{" "}
+              </span>
+              <span className="text-foreground">{subResult}</span>
             </div>
           )}
         </div>
       </section>
-
-      {/* Spacer for bottom */}
-      <div className="h-16"></div>
     </>
   );
 }

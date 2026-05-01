@@ -8,7 +8,7 @@ import { Dashboard } from "./pages/DashboardPage";
 import { Footer } from "./components/Footer";
 import { PlannerPage } from "./pages/PlannerPage";
 import CityPage from "./pages/CityPage";
-import CitylistPage from "./pages/CitylistPage";
+import DishesListPage from "./pages/DishesListPage";
 import SavedPage from "./pages/SavedPage";
 import { UserProfileSettings } from "./components/UserProfileSettings";
 import NotFound from "./pages/NotFoundPage";
@@ -28,10 +28,13 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/planner" element={<PlannerPage />} />
             <Route path="/city" element={<CityPage />} />
-            <Route path="/citylist" element={<CitylistPage />} />
+            <Route
+              path="city/:cityName/dishesList"
+              element={<DishesListPage />}
+            />
             <Route path="/saved" element={<SavedPage />} />
             <Route path="/profile" element={<UserProfileSettings />} />
-            <Route path="/recpie-detail" element={<RecipieDetail />} />
+            <Route path="/recipe/:id" element={<RecipieDetail />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
