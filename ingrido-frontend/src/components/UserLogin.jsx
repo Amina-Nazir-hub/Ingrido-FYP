@@ -1,69 +1,81 @@
-import { Mail, Lock, UtensilsCrossed } from "lucide-react";
 import { useLoginForm } from "../hooks/UserLoginForm";
-
+import { useNavigate } from "react-router-dom";
+import { UtensilsCrossed } from "lucide-react";
 export function UserLogin() {
   const { loginData, handleChange, handleSubmit } = useLoginForm();
-
+  const navigate = useNavigate();
+  const handleOnSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await handleSubmit(e);
+      if (res) {
+        navigate("/dashboard");
+      }
+    } catch (err) {
+      alert("Invalid Credentials. Please try again.");
+    }
+  };
   return (
-    <main className="flex-1 pt-24 bg-background font-sans">
-      <section className="min-h-[80vh] flex items-center justify-center py-16">
-        <div className="container mx-auto px-4">
-          <div className="rounded-2xl max-w-md mx-auto p-8 bg-card shadow-card border border-border">
-            {/* Logo */}
-            <div className="text-center mb-8">
-              <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <UtensilsCrossed className="w-8 h-8 text-primary-foreground" />
-              </div>
-              <h1 className="font-display text-2xl font-bold">Welcome Back!</h1>
-              <p className="text-muted-foreground text-sm mt-2">
-                Sign in to your account
-              </p>
-            </div>
-
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Email</label>
-                <div className="relative mt-1">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary" />
-                  <input
-                    type="email"
-                    name="email"
-                    required
-                    value={loginData.email}
-                    onChange={handleChange}
-                    className="w-full h-11 rounded-xl border border-input px-10 bg-background focus:ring-2 focus:ring-ring outline-none"
-                    placeholder="you@example.com"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Password</label>
-                <div className="relative mt-1">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary" />
-                  <input
-                    type="password"
-                    name="password"
-                    required
-                    value={loginData.password}
-                    onChange={handleChange}
-                    className="w-full h-11 rounded-xl border border-input px-10 bg-background focus:ring-2 focus:ring-ring outline-none"
-                    placeholder="••••••••"
-                  />
-                </div>
-              </div>
-
-              <button 
-                type="submit"
-                className="w-full bg-primary hover:bg-secondary transition-opacity text-secondary-foreground h-12 rounded-xl font-semibold"
-              >
-                Sign In
-              </button>
-            </form>
-          </div>
+    <main className="min-h-screen flex items-center justify-center bg-background px-4">
+      <form
+        onSubmit={handleOnSubmit}
+        className="w-full max-w-md p-8 bg-card rounded-3xl shadow-xl border border-border"
+      >
+        <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-4 text-white shadow-lg">
+          <UtensilsCrossed size={32} />
         </div>
-      </section>
+        <h1 className="text-2xl font-bold text-center mb-2 font-display text-foreground">
+          Welcome Back
+        </h1>
+        <p className="text-muted-foreground text-center mb-8 text-sm">
+          Please enter your details
+        </p>
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-muted-foreground ml-1">
+              EMAIL
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={loginData.email}
+              onChange={handleChange}
+              className="w-full p-3 rounded-xl border bg-background focus:ring-2 focus:ring-primary outline-none transition-all"
+              placeholder="name@example.com"
+              required
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-muted-foreground ml-1">
+              PASSWORD
+            </label>
+            <input
+              type="password"
+              name="password"
+              value={loginData.password}
+              onChange={handleChange}
+              className="w-full p-3 rounded-xl border bg-background focus:ring-2 focus:ring-primary outline-none transition-all"
+              placeholder="••••••••"
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full py-4 bg-primary text-white rounded-xl font-bold hover:bg-secondary shadow-md transition-all active:scale-95 mt-4"
+          >
+            Sign In
+          </button>
+        </div>
+        <p className="text-center mt-6 text-sm text-muted-foreground">
+          Don't have an account?{" "}
+          <a
+            href="/register"
+            className="text-primary font-bold hover:underline"
+          >
+            Sign Up
+          </a>
+        </p>
+      </form>
     </main>
   );
 }

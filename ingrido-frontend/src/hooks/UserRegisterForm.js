@@ -32,6 +32,21 @@ export function useRegisterForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Password validation logic
+    const { password } = formData;
+    const isPasswordValid = 
+      password.length >= 8 && 
+      /[A-Z]/.test(password) && 
+      /[a-z]/.test(password) && 
+      /[0-9]/.test(password) && 
+      /[!@#$%^&*(),.?":{}|<>+=-]/.test(password);
+
+    if (!isPasswordValid) {
+      alert("Please ensure the password meets all security criteria.");
+      return;
+    }
+
     try {
       const response = await axios.post("http://127.0.0.1:8000/api/accounts/register/", {
         first_name: formData.name,
@@ -41,14 +56,16 @@ export function useRegisterForm() {
         dietary_preferences: formData.dietaryPreferences
       });
 
-      // Token save karna jo backend ne signup par bheja hai
+      // Storage aur Context update
       localStorage.setItem("ingrido_token", response.data.token);
+      localStorage.setItem("user_name", formData.name);
       
-      login(); // Auth state update
+      login({ name: formData.name });
+      
       navigate("/dashboard");
     } catch (error) {
-      console.error("Registration Error:", error.response?.data || error.message);
-      alert("Registration failed! Email might already be in use.");
+      console.error("Auth Exception:", error.response?.data || error.message);
+      alert("Registration failed. Email might already exist.");
     }
   };
 
