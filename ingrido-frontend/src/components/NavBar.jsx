@@ -26,7 +26,7 @@ export function Navbar() {
                 <Link to="/dashboard" className="hover:text-primary transition-colors">Dashboard</Link>
                 <Link to="/planner" className="hover:text-primary transition-colors">Weekly Plan</Link>
                 <Link to="/saved" className="hover:text-primary transition-colors">Saved</Link>
-                <Link to="/citylist" className="hover:text-primary transition-colors">Groceries</Link>
+                <Link to="/city" className="hover:text-primary transition-colors">ExploreCity</Link>
               </nav>
 
               <div className="flex items-center gap-4 border-l pl-6 border-border">
