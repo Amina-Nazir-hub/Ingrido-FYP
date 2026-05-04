@@ -1,4 +1,3 @@
-
 import os
 from pathlib import Path
 
@@ -69,7 +68,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'ingrido_db',
         'USER': 'postgres',
-        'PASSWORD': 'amna@hanu12',
+        'PASSWORD': 'anb',
         'HOST': '127.0.0.1',
         'PORT': '5432',
     }

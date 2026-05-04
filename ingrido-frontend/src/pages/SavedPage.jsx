@@ -10,26 +10,35 @@ export default function SavedPage() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Backend base URL for images
+  const BACKEND_URL = "http://127.0.0.1:8000";
+
   // ─── Backend se Bookmarks Fetch Karna ───
   useEffect(() => {
     const fetchBookmarks = async () => {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("ingrido_token");
       if (!token) {
         setLoading(false);
-        return; // Agar login nahi hai to khali page dikhayega
+        return;
       }
 
       try {
         const response = await axios.get(
-          "http://127.0.0.1:8000/api/accounts/bookmarks/",
+          `${BACKEND_URL}/api/accounts/saved/`,
           {
             headers: { Authorization: `Token ${token}` },
           },
         );
-        setSavedRecipes(response.data);
-        setLoading(false);
+        
+        // Data mapping logic based on your serializer structure
+        const actualData = Array.isArray(response.data)
+          ? response.data
+          : response.data.results || response.data.bookmarks || [];
+
+        setSavedRecipes(actualData);
       } catch (error) {
         console.error("Error fetching bookmarks:", error);
+      } finally {
         setLoading(false);
       }
     };
@@ -39,10 +48,10 @@ export default function SavedPage() {
 
   // ─── Bookmark Remove Karne ka Function ───
   const handleUnsave = async (recipeId) => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("ingrido_token");
     try {
       await axios.post(
-        `http://127.0.0.1:8000/api/accounts/recipes/${recipeId}/bookmark/`,
+        `${BACKEND_URL}/api/accounts/recipes/${recipeId}/bookmark/`,
         {},
         { headers: { Authorization: `Token ${token}` } },
       );
@@ -84,7 +93,7 @@ export default function SavedPage() {
               Total: {savedRecipes.length} Items
             </p>
           </div>
-          {!localStorage.getItem("token") && (
+          {!localStorage.getItem("ingrido_token") && (
             <Link
               to="/login"
               className="text-primary font-bold text-sm underline"
@@ -96,62 +105,71 @@ export default function SavedPage() {
 
         {savedRecipes.length > 0 ? (
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 lg:gap-8">
-            {savedRecipes.map((recipe, index) => (
-              <article
-                key={recipe.id}
-                className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
-              >
-                {/* IMAGE */}
-                <div className="relative aspect-video w-full overflow-hidden bg-muted">
-                  <img
-                    src={recipe.image || "/assets/placeholder.jpg"}
-                    alt={recipe.title}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  />
-                </div>
+            {savedRecipes.map((recipe) => {
+              // Image URL formatting to fix broken images
+              const imageUrl = recipe.image
+                ? recipe.image.startsWith("http")
+                  ? recipe.image
+                  : `${BACKEND_URL}${recipe.image}`
+                : "https://via.placeholder.com/800x500?text=Recipe+Image";
 
-                {/* CONTENT */}
-                <div className="flex flex-1 flex-col gap-3 p-5">
-                  <h3 className="text-md font-bold uppercase tracking-wide text-foreground">
-                    {recipe.title}
-                  </h3>
-
-                  <div className="flex items-center text-xs font-medium text-muted-foreground gap-2">
-                    <span className="bg-secondary px-2 py-1 rounded">
-                      {recipe.kcal} kcal
-                    </span>
-                    <span className="text-border">|</span>
-                    <span>{recipe.prep_time} mins</span>
+              return (
+                <article
+                  key={recipe.id}
+                  className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md"
+                >
+                  {/* IMAGE */}
+                  <div className="relative aspect-video w-full overflow-hidden bg-muted">
+                    <img
+                      src={imageUrl}
+                      alt={recipe.title}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
                   </div>
 
-                  <div className="mt-auto flex items-center justify-between border-t border-border pt-4">
-                    <span className="text-[10px] text-muted-foreground italic">
-                      From {recipe.city?.name || "Global"}
-                    </span>
+                  {/* CONTENT */}
+                  <div className="flex flex-1 flex-col gap-3 p-5">
+                    <h3 className="text-md font-bold uppercase tracking-wide text-foreground">
+                      {recipe.title}
+                    </h3>
 
-                    <div className="flex items-center gap-2">
-                      {/* Unsave Button */}
-                      <button
-                        onClick={() => handleUnsave(recipe.id)}
-                        className="rounded-md p-2 text-primary hover:bg-primary/10 transition-colors"
-                        title="Remove from saved"
-                      >
-                        <Bookmark className="h-5 w-5 fill-current" />
-                      </button>
+                    <div className="flex items-center text-xs font-medium text-muted-foreground gap-2">
+                      <span className="bg-secondary px-2 py-1 rounded">
+                        {recipe.kcal} kcal
+                      </span>
+                      <span className="text-border">|</span>
+                      <span>{recipe.prep_time} mins</span>
+                    </div>
 
-                      {/* View Detail Button */}
-                      <button
-                        onClick={() => navigate(`/recipe/${recipe.id}`)}
-                        className="rounded-md p-2 text-muted-foreground hover:bg-secondary transition-colors"
-                        title="View Recipe"
-                      >
-                        <Eye className="h-5 w-5" />
-                      </button>
+                    <div className="mt-auto flex items-center justify-between border-t border-border pt-4">
+                      <span className="text-[10px] text-muted-foreground italic">
+                        {recipe.category || "Recipe"}
+                      </span>
+
+                      <div className="flex items-center gap-2">
+                        {/* Unsave Button */}
+                        <button
+                          onClick={() => handleUnsave(recipe.id)}
+                          className="rounded-md p-2 text-primary hover:bg-primary/10 transition-colors"
+                          title="Remove from saved"
+                        >
+                          <Bookmark className="h-5 w-5 fill-current" />
+                        </button>
+
+                        {/* View Detail Button */}
+                        <button
+                          onClick={() => navigate(`/recipe/${recipe.id}`)}
+                          className="rounded-md p-2 text-muted-foreground hover:bg-secondary transition-colors"
+                          title="View Recipe"
+                        >
+                          <Eye className="h-5 w-5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-20 border-2 border-dashed rounded-3xl border-border">
@@ -160,7 +178,7 @@ export default function SavedPage() {
               Aapne abhi tak koi recipe save nahi ki.
             </p>
             <Link
-              to="/City"
+              to="/city"
               className="mt-4 inline-block text-primary font-bold hover:underline"
             >
               Explore Cities & Save Recipes

@@ -20,6 +20,7 @@ const RecipeCard = ({
   kcal,
   prep_time,
   protein,
+  isSaved, // Naya prop status check karne ke liye
   onBookmark,
   onViewDetail,
 }) => {
@@ -70,10 +71,15 @@ const RecipeCard = ({
         <div className="flex items-center justify-end gap-1 border-t border-border pt-3">
           <button
             onClick={() => onBookmark(id)}
-            className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-[#b17b46] transition"
-            title="Save Recipe"
+            className={`rounded-md p-2 transition ${
+              isSaved 
+                ? "text-[#b17b46] bg-[#b17b46]/10" 
+                : "text-muted-foreground hover:bg-secondary hover:text-[#b17b46]"
+            }`}
+            title={isSaved ? "Remove from saved" : "Save Recipe"}
           >
-            <Bookmark className="h-4 w-4" />
+            {/* fill-current class icon ko fill kar degi agar isSaved true hai */}
+            <Bookmark className={`h-5 w-5 ${isSaved ? "fill-current" : ""}`} />
           </button>
 
           <button
@@ -81,7 +87,7 @@ const RecipeCard = ({
             className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground transition"
             title="View Details"
           >
-            <Eye className="h-4 w-4" />
+            <Eye className="h-5 w-5" />
           </button>
         </div>
       </div>
@@ -91,7 +97,6 @@ const RecipeCard = ({
 
 // --- Main DishesListPage Component ---
 const DishesListPage = () => {
-  // 1. URL Parameter se cityName nikalna (:cityName route se)
   const { cityName } = useParams();
   const navigate = useNavigate();
   const BACKEND_URL = "http://127.0.0.1:8000";
@@ -102,58 +107,59 @@ const DishesListPage = () => {
   const [showPandamartAlert, setShowPandamartAlert] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
-      // Agar URL mein cityName nahi hai toh request na bhejein
-      if (!cityName) return;
+  const fetchData = async () => {
+    if (!cityName) return;
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("ingrido_token");
+      
+      // Token bhejiyo warna backend hamesha is_saved: false bhejega[cite: 4]
+      const config = {
+        headers: token ? { Authorization: `Token ${token}` } : {}
+      };
 
-      try {
-        setLoading(true);
-        // Backend API call: Hum ab bhi query filter use kar rahe hain
-        // taake Django views ko modify na karna paray.
-        const response = await axios.get(
-          `${BACKEND_URL}/api/accounts/recipes/?city=${cityName}`,
-        );
+      const response = await axios.get(
+        `${BACKEND_URL}/api/accounts/recipes/?city=${cityName}`,
+        config
+      );
 
-        // Data mapping
-        setRecipes(
-          Array.isArray(response.data)
-            ? response.data
-            : response.data.recipes || [],
-        );
-
-        // City information setup
-        setCityInfo(response.data.city || null);
-
-        // Pandamart alert check
-        if (response.data.pandamart_alert) {
-          setShowPandamartAlert(true);
-        }
-
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching city recipes:", error);
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [cityName]); // Dependency array mein cityName update hone par dubara data fetch hoga
+      // Backend response se is_saved property ko state mein set karein[cite: 4]
+      setRecipes(response.data.recipes || []);
+      setCityInfo(response.data.city || null);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error:", error);
+      setLoading(false);
+    }
+  };
+  fetchData();
+}, [cityName]);
 
   const handleBookmark = async (recipeId) => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("ingrido_token");
     if (!token) {
-      alert("Please login to save recipes!");
+      navigate("/login");
       return;
     }
+
     try {
+      // Backend request
       const res = await axios.post(
         `${BACKEND_URL}/api/accounts/recipes/${recipeId}/bookmark/`,
         {},
-        { headers: { Authorization: `Token ${token}` } },
+        { headers: { Authorization: `Token ${token}` } }
       );
-      alert(res.data.message || "Recipe saved!");
+
+      // Instant UI update logic: Alert hatane ke liye
+      setRecipes((prevRecipes) =>
+        prevRecipes.map((recipe) =>
+          recipe.id === recipeId 
+            ? { ...recipe, is_saved: res.data.saved } 
+            : recipe
+        )
+      );
     } catch (err) {
-      alert("Error saving recipe.");
+      console.error("Error toggling bookmark:", err);
     }
   };
 
@@ -184,7 +190,6 @@ const DishesListPage = () => {
             <AlertCircle className="h-5 w-5" />
             <p className="text-sm font-medium">
               Note: Pandamart is currently not available in {cityName}.
-              Ingredient delivery might be limited.
             </p>
           </div>
         )}
@@ -193,14 +198,11 @@ const DishesListPage = () => {
           <p className="text-xs font-semibold uppercase tracking-widest text-[#b17b46]">
             {cityInfo?.region || "Local Cuisine"}
           </p>
-
           <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
             Famous Recipes of {cityName}
           </h1>
-
           <p className="mt-2 text-muted-foreground">
-            {cityInfo?.tagline ||
-              `Discover the most authentic and traditional dishes from ${cityName}.`}
+            {cityInfo?.tagline || `Discover the most authentic and traditional dishes from ${cityName}.`}
           </p>
         </header>
 
@@ -210,6 +212,7 @@ const DishesListPage = () => {
               <RecipeCard
                 key={recipe.id}
                 {...recipe}
+                isSaved={recipe.is_saved} // is_saved boolean pass kiya
                 onBookmark={handleBookmark}
                 onViewDetail={handleViewDetail}
               />
