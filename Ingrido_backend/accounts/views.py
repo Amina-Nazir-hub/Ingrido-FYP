@@ -1,18 +1,72 @@
+import os
+import traceback
+import google.generativeai as genai
+from django.conf import settings
+from django.contrib.auth import authenticate
+from django.shortcuts import get_object_or_404
+from rest_framework import status
+from rest_framework.authtoken.models import Token
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.authtoken.models import Token
-from django.contrib.auth import authenticate
-from django.shortcuts import get_object_or_404
-import traceback
 
+from .models import City, Recipe, SavedRecipe, UserProfile
 from .serializers import (
-    UserSerializer, CitySerializer,
-    RecipeListSerializer, RecipeDetailSerializer,
-    SavedRecipeSerializer
+    CitySerializer,
+    RecipeDetailSerializer,
+    RecipeListSerializer,
+    SavedRecipeSerializer,
+    UserSerializer,
 )
-from .models import UserProfile, City, Recipe, SavedRecipe
+
+# ─── AI Configuration ────────────────────────────────────────────────────────
+# Note: Apni API Key settings.py mein GEMINI_API_KEY ke naam se save karein
+# Ya phir yahan direct string mein paste kar dein (not recommended for production)
+GEMINI_KEY = getattr(settings, "GEMINI_API_KEY", "AIzaSyDGy_BXHFOS2aNKQ4trOR6SLmXCeveOCEg")
+genai.configure(api_key=GEMINI_KEY)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def get_ai_substitute(request, pk):
+    """
+    Recipe ID aur ingredient lekar AI se substitute mangwata hai.
+    """
+    recipe = get_object_or_404(Recipe, pk=pk)
+    ingredient_to_replace = request.data.get('ingredient', '').strip()
+    
+    if not ingredient_to_replace:
+        return Response({"error": "Please provide an ingredient name."}, status=status.HTTP_400_BAD_REQUEST)
+
+    # AI Prompt: Isse AI ko recipe ka context milta hai
+    prompt = f"""
+    You are a professional Pakistani Chef. 
+    Recipe: {recipe.title}
+    Ingredients: {recipe.ingredients}
+    
+    User is missing this ingredient: '{ingredient_to_replace}'.
+    
+    Task: Suggest the best culinary substitute for '{ingredient_to_replace}' in this specific dish. 
+    Keep the answer short, practical, and mention if it will slightly change the taste.
+    Answer in 1-2 clear sentences.
+    """
+
+    try:
+        model = genai.GenerativeModel('gemini-pro')
+        response = model.generate_content(prompt)
+        ai_suggestion = response.text
+        
+        return Response({
+            "ingredient": ingredient_to_replace,
+            "substitute": ai_suggestion
+        })
+    except Exception as e:
+        # Fallback: Agar AI fail ho jaye toh Model mein mojood substitutions check karein
+        fallback_sub = recipe.substitutions.get(ingredient_to_replace.lower(), "No substitute found. Try PandaMart!")
+        return Response({
+            "ingredient": ingredient_to_replace,
+            "substitute": fallback_sub,
+            "note": "AI is busy, showing database fallback."
+        })
 
 # ─── Auth Views ────────────────────────────────────────────────────────────────
 
@@ -104,10 +158,6 @@ def city_list(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def GetRecipesByCity(request):
-    """
-    GET /api/accounts/recipes/?city=Karachi
-    Ye function City ke mutabiq recipes filter kar ke bhejta hai.
-    """
     city_name = request.query_params.get('city')
     
     if not city_name:
@@ -116,18 +166,12 @@ def GetRecipesByCity(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    # City dhoondna (e.g. Karachi, Multan)
     city = get_object_or_404(City, name__iexact=city_name)
-    
-    # Us city se linked saari recipes filter karna
     recipes = Recipe.objects.filter(city=city)
-    
-    # Recipe list ko serialize karna
     recipe_serializer = RecipeListSerializer(
         recipes, many=True, context={'request': request}
     )
 
-    # Frontend DishesListPage ke format ke mutabiq response
     return Response({
         "city": CitySerializer(city).data,
         "pandamart_alert": not city.is_pandamart_available,

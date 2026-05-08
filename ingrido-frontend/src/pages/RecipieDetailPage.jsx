@@ -9,14 +9,16 @@ import {
   Flame,
   Utensils,
   ShoppingCart,
+  Sparkles, // AI icon ke liye
 } from "lucide-react";
 
 export function RecipieDetail() {
-  const { id } = useParams(); // URL se Recipe ID lega
+  const { id } = useParams();
   const [recipe, setRecipe] = useState(null);
   const [loading, setLoading] = useState(true);
   const [ingredientSearch, setIngredientSearch] = useState("");
   const [subResult, setSubResult] = useState("");
+  const [isAiLoading, setIsAiLoading] = useState(false); // AI loading state
   const [isSaved, setIsSaved] = useState(false);
 
   // ─── Backend se Recipe Data Fetch Karna ───
@@ -24,9 +26,10 @@ export function RecipieDetail() {
     const fetchDetail = async () => {
       try {
         const response = await axios.get(
-          `http://127.0.0.1:8000/api/accounts/recipes/${id}/`,
+          `http://127.0.0.1:8000/api/accounts/recipes/${id}/`
         );
         setRecipe(response.data);
+        setIsSaved(response.data.is_saved); // Backend se saved status lena
         setLoading(false);
       } catch (error) {
         console.error("Error fetching recipe details:", error);
@@ -36,18 +39,31 @@ export function RecipieDetail() {
     fetchDetail();
   }, [id]);
 
-  // ─── Substitute Logic (Backend Data se) ───
-  const handleCheckSubstitute = () => {
-    const key = ingredientSearch.toLowerCase().trim();
+  // ─── AI Substitution Logic (Updated) ───
+  const handleCheckSubstitute = async () => {
+    const key = ingredientSearch.trim();
     if (!key || !recipe) return;
 
-    // Backend se aayi hui substitutions dictionary mein check karega
-    const findSub = recipe.substitutions[key];
+    setIsAiLoading(true);
+    setSubResult("");
 
-    setSubResult(
-      findSub ||
-        "No direct substitute found in our database. You might want to check PandaMart!",
-    );
+    try {
+      // Backend AI endpoint ko call karna
+      const response = await axios.post(
+        `http://127.0.0.1:8000/api/accounts/recipes/${id}/ai-substitute/`,
+        { ingredient: key }
+      );
+
+      setSubResult(response.data.substitute);
+    } catch (error) {
+      console.error("AI Error:", error);
+      // Fallback: Agar AI fail ho jaye toh local data check karein
+      const fallback = recipe.substitutions[key.toLowerCase()] || 
+                       "Sorry, AI is busy and no manual substitute was found.";
+      setSubResult(fallback);
+    } finally {
+      setIsAiLoading(false);
+    }
   };
 
   // ─── Save/Bookmark Logic ───
@@ -59,7 +75,7 @@ export function RecipieDetail() {
       const res = await axios.post(
         `http://127.0.0.1:8000/api/accounts/recipes/${id}/bookmark/`,
         {},
-        { headers: { Authorization: `Token ${token}` } },
+        { headers: { Authorization: `Token ${token}` } }
       );
       setIsSaved(!isSaved);
       alert(res.data.message);
@@ -77,7 +93,7 @@ export function RecipieDetail() {
       const { latitude, longitude } = position.coords;
       window.open(
         `https://www.foodpanda.pk/brand/pandamart?lat=${latitude}&lng=${longitude}`,
-        "_blank",
+        "_blank"
       );
     });
   };
@@ -120,7 +136,7 @@ export function RecipieDetail() {
       </section>
 
       <section className="container mx-auto max-w-6xl mt-10 grid gap-10 lg:grid-cols-[1.4fr_1fr] px-4">
-        {/* Left: Image/Video Placeholder */}
+        {/* Left: Image/Video */}
         <div className="space-y-4">
           <div className="relative overflow-hidden rounded-2xl bg-muted aspect-video shadow-lg">
             <img
@@ -142,47 +158,37 @@ export function RecipieDetail() {
             <div className="flex items-center gap-3">
               <Clock className="text-primary h-5 w-5" />
               <div>
-                <p className="text-[10px] uppercase text-muted-foreground">
-                  Cook Time
-                </p>
-                <p className="font-bold text-sm">{recipe.prep_time} mins</p>
+                <p className="text-[10px] uppercase text-muted-foreground">Cook Time</p>
+                <p className="font-bold text-sm">{recipe.prep_time}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <Users className="text-primary h-5 w-5" />
               <div>
-                <p className="text-[10px] uppercase text-muted-foreground">
-                  Serves
-                </p>
+                <p className="text-[10px] uppercase text-muted-foreground">Serves</p>
                 <p className="font-bold text-sm">4-5 People</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <Flame className="text-primary h-5 w-5" />
               <div>
-                <p className="text-[10px] uppercase text-muted-foreground">
-                  Calories
-                </p>
+                <p className="text-[10px] uppercase text-muted-foreground">Calories</p>
                 <p className="font-bold text-sm">{recipe.kcal} kcal</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <Utensils className="text-primary h-5 w-5" />
               <div>
-                <p className="text-[10px] uppercase text-muted-foreground">
-                  Cuisine
-                </p>
+                <p className="text-[10px] uppercase text-muted-foreground">Cuisine</p>
                 <p className="font-bold text-sm">Pakistani</p>
               </div>
             </div>
           </div>
 
           <div className="rounded-2xl border border-border bg-card p-6">
-            <h2 className="mb-3 font-serif text-xl font-bold">
-              About this dish
-            </h2>
+            <h2 className="mb-3 font-serif text-xl font-bold">About this dish</h2>
             <p className="text-muted-foreground leading-relaxed">
-              Experience the authentic taste of {recipe.city?.name}. This recipe
+              Experience the authentic taste of {recipe.city_name || "this city"}. This recipe
               has been passed down through generations, ensuring a perfect
               balance of spices and texture.
             </p>
@@ -197,15 +203,11 @@ export function RecipieDetail() {
             {/* Ingredients Side */}
             <div className="p-6 md:p-10 border-b md:border-b-0 md:border-r border-border">
               <h2 className="font-serif text-2xl font-bold mb-6 flex items-center gap-2">
-                <span className="w-1.5 h-8 bg-primary rounded-full"></span>{" "}
-                Ingredients
+                <span className="w-1.5 h-8 bg-primary rounded-full"></span> Ingredients
               </h2>
               <ul className="space-y-4">
                 {recipe.ingredients.split("\n").map((item, index) => (
-                  <li
-                    key={index}
-                    className="flex items-center gap-3 text-foreground/80"
-                  >
+                  <li key={index} className="flex items-center gap-3 text-foreground/80">
                     <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0"></span>
                     <span>{item}</span>
                   </li>
@@ -216,38 +218,32 @@ export function RecipieDetail() {
             {/* Directions Side */}
             <div className="p-6 md:p-10 bg-secondary/5">
               <h2 className="font-serif text-2xl font-bold mb-6 flex items-center gap-2">
-                <span className="w-1.5 h-8 bg-primary rounded-full"></span>{" "}
-                Directions
+                <span className="w-1.5 h-8 bg-primary rounded-full"></span> Directions
               </h2>
               <div className="space-y-8">
-                {recipe.instructions
-                  .split("\n")
-                  .filter((s) => s.trim())
-                  .map((step, index) => (
-                    <div key={index} className="flex gap-4">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-white font-bold text-sm">
-                        {index + 1}
-                      </span>
-                      <p className="text-foreground/80 leading-relaxed pt-1">
-                        {step}
-                      </p>
-                    </div>
-                  ))}
+                {recipe.instructions.split("\n").filter((s) => s.trim()).map((step, index) => (
+                  <div key={index} className="flex gap-4">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-white font-bold text-sm">
+                      {index + 1}
+                    </span>
+                    <p className="text-foreground/80 leading-relaxed pt-1">{step}</p>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Interactive Tools: Substitutes & PandaMart */}
+      {/* Interactive Tools: AI Substitutes & PandaMart */}
       <section className="container mx-auto max-w-6xl mt-12 px-4 mb-20">
         <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-6 md:p-10">
           <div className="mb-6">
-            <h2 className="text-2xl font-bold font-serif">
-              Missing an Ingredient?
+            <h2 className="text-2xl font-bold font-serif flex items-center gap-2">
+              <Sparkles className="text-primary" /> Missing an Ingredient?
             </h2>
             <p className="text-muted-foreground">
-              Find a quick substitute or order via PandaMart
+              Ask our **Chef AI** for a quick substitute or order via PandaMart
             </p>
           </div>
 
@@ -264,9 +260,10 @@ export function RecipieDetail() {
 
             <button
               onClick={handleCheckSubstitute}
-              className="bg-primary text-white px-8 py-4 rounded-xl font-bold hover:shadow-lg transition-all"
+              disabled={isAiLoading}
+              className="bg-primary text-white px-8 py-4 rounded-xl font-bold hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              Find Substitute
+              {isAiLoading ? <Loader2 className="animate-spin h-5 w-5" /> : "Ask Chef AI"}
             </button>
 
             <button
@@ -279,10 +276,10 @@ export function RecipieDetail() {
 
           {subResult && (
             <div className="mt-6 p-4 bg-white rounded-lg border border-primary/20 animate-in fade-in slide-in-from-top-2">
-              <span className="font-bold text-primary">
-                Chef's Suggestion:{" "}
+              <span className="font-bold text-primary flex items-center gap-2">
+                <Sparkles size={16} /> Chef's Suggestion:
               </span>
-              <span className="text-foreground">{subResult}</span>
+              <p className="mt-1 text-foreground leading-relaxed">{subResult}</p>
             </div>
           )}
         </div>
