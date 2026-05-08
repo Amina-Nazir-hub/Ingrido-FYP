@@ -1,12 +1,9 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 
 export function useLoginForm() {
-  const navigate = useNavigate();
   const { login } = useAuth();
-
   const [loginData, setLoginData] = useState({
     email: "",
     password: "",
@@ -20,23 +17,25 @@ export function useLoginForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // Backend ko login request bhejna
       const response = await axios.post("http://127.0.0.1:8000/api/accounts/login/", {
         email: loginData.email,
         password: loginData.password
       });
 
-      // Token save karna
+      // 1. Token save karein
       localStorage.setItem("ingrido_token", response.data.token);
       
-      // Global Auth state update karna
-      login(); 
+      // 2. Name nikaalein (Backend se first_name aa raha hai ya nahi, usay check karein)
+      const userName = response.data.first_name || loginData.email.split('@')[0];
+      localStorage.setItem("user_name", userName);
 
-      // Dashboard par redirect
-      navigate("/dashboard"); 
+      // 3. Global State update karein
+      login({ name: userName }); 
+
+      return response.data; 
     } catch (error) {
       console.error("Login Error:", error.response?.data || error.message);
-      alert("Invalid email or password!");
+      throw error; // Isay LoginPage handle karegi
     }
   };
 

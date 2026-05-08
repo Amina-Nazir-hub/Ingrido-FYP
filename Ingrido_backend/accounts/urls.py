@@ -4,8 +4,9 @@ from .views import (
     login_user, 
     user_profile,
     city_list,
-    GetRecipesByCity,  # Naya function jo city ke mutabiq recipes filter karega
+    GetRecipesByCity,
     recipe_detail,
+    get_ai_substitute,  # AI function ko import kiya
     toggle_bookmark, 
     saved_recipes,
 )
@@ -20,9 +21,12 @@ urlpatterns = [
     path('cities/',   city_list,      name='city_list'),
 
     # ── Recipes ───────────────────────────────────────────
-    # Frontend (axios) ab is URL par ?city=Karachi bhej raha hai
     path('recipes/',           GetRecipesByCity, name='recipe_list'), 
     path('recipes/<int:pk>/',  recipe_detail,    name='recipe_detail'),
+    
+    # ── AI Substitution (NEW) ─────────────────────────────
+    # Ye endpoint frontend se ingredient request lega
+    path('recipes/<int:pk>/ai-substitute/', get_ai_substitute, name='ai_substitute'),
 
     # ── Bookmarks ─────────────────────────────────────────
     path('recipes/<int:recipe_id>/bookmark/', toggle_bookmark, name='toggle_bookmark'),

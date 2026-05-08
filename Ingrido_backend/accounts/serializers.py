@@ -21,37 +21,51 @@ class UserSerializer(serializers.ModelSerializer):
 
 # 2. City Serializer
 class CitySerializer(serializers.ModelSerializer):
+    dishes_count = serializers.SerializerMethodField()
+
     class Meta:
         model = City
         fields = '__all__'
 
-# 3. Recipe List Serializer (UPDATED for Ingrido Frontend)
+    def get_dishes_count(self, obj):
+        # 'recipes' related_name se count calculate ho raha hai[cite: 3]
+        return obj.recipes.count()
+
+# 3. Recipe List Serializer (FIXED: Added is_saved)
 class RecipeListSerializer(serializers.ModelSerializer):
-    # Difficulty field model mein nahi hai, isliye hum logic se handle kar rahe hain
     difficulty = serializers.SerializerMethodField()
-    # Pura Image URL generate karne ke liye
     image = serializers.SerializerMethodField()
+    is_saved = serializers.SerializerMethodField() # Yeh field navigation fix karega
 
     class Meta:
         model = Recipe
-        fields = ['id', 'title', 'image', 'prep_time', 'kcal', 'category', 'difficulty'] 
+        fields = ['id', 'title', 'image', 'prep_time', 'kcal', 'category', 'difficulty', 'is_saved'] 
+
+    def get_is_saved(self, obj):
+        # Request context se user nikal kar bookmark check karna
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return SavedRecipe.objects.filter(user=request.user, recipe=obj).exists()
+        return False
 
     def get_difficulty(self, obj):
-        # Agar category 'Quick & Easy' hai toh 'Easy' dikhaye, warna 'Medium'
         if obj.category and 'Quick' in obj.category:
             return "Easy"
         return "Medium"
 
     def get_image(self, obj):
         request = self.context.get('request')
-        if obj.image and request:
-            return request.build_absolute_uri(obj.image.url)
+        if obj.image:
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
         return None
 
-# 4. Recipe Detail Serializer (Poori details ke liye)
+# 4. Recipe Detail Serializer
 class RecipeDetailSerializer(serializers.ModelSerializer):
     city_name = serializers.ReadOnlyField(source='city.name')
     image = serializers.SerializerMethodField()
+    is_saved = serializers.SerializerMethodField()
 
     class Meta:
         model = Recipe
@@ -59,18 +73,36 @@ class RecipeDetailSerializer(serializers.ModelSerializer):
 
     def get_image(self, obj):
         request = self.context.get('request')
-        if obj.image and request:
-            return request.build_absolute_uri(obj.image.url)
+        if obj.image:
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
         return None
+
+    def get_is_saved(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return SavedRecipe.objects.filter(user=request.user, recipe=obj).exists()
+        return False
 
 # 5. Saved Recipe Serializer
 class SavedRecipeSerializer(serializers.ModelSerializer):
-    # context passing yahan zaroori hai taake nested serializer bhi image URLs sahi banaye
-    recipe_details = serializers.SerializerMethodField()
+    id = serializers.ReadOnlyField(source='recipe.id')
+    title = serializers.ReadOnlyField(source='recipe.title')
+    prep_time = serializers.ReadOnlyField(source='recipe.prep_time')
+    kcal = serializers.ReadOnlyField(source='recipe.kcal')
+    category = serializers.ReadOnlyField(source='recipe.category')
+    image = serializers.SerializerMethodField()
+    is_saved = serializers.ReadOnlyField(default=True) # Saved page par hamesha true hoga
 
     class Meta:
         model = SavedRecipe
-        fields = ['id', 'recipe', 'recipe_details', 'saved_at']
+        fields = ['id', 'title', 'image', 'prep_time', 'kcal', 'category', 'saved_at', 'is_saved']
 
-    def get_recipe_details(self, obj):
-        return RecipeListSerializer(obj.recipe, context=self.context).data
+    def get_image(self, obj):
+        request = self.context.get('request')
+        if obj.recipe.image:
+            if request:
+                return request.build_absolute_uri(obj.recipe.image.url)
+            return obj.recipe.image.url
+        return None
