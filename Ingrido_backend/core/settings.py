@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-
 # Structure: Ingrido_backend/core/settings.py
 # .parent(core) -> .parent(Ingrido_backend) -> .parent(Ingrido-FYP)
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
