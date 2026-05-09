@@ -67,11 +67,12 @@ def fetch_youtube_video_id(recipe_title):
     return None
 
 
+groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+
 # ─── HELPER FUNCTION: AI IMAGE GENERATION (FREE) ───────────────────
 def generate_and_save_ai_image(recipe_obj):
     """
-    Pollinations AI se free image generate karke
-    recipe.image field mein permanently save karta hai.
+    Pollinations AI se free image generate karke recipe.image field mein save karta hai.
     """
     try:
         prompt = (
@@ -79,6 +80,8 @@ def generate_and_save_ai_image(recipe_obj):
             f"authentic Pakistani cuisine, high resolution, 4k, cinematic lighting"
         )
         encoded_prompt = requests.utils.quote(prompt)
+
+
         image_url = (
             f"https://image.pollinations.ai/prompt/{encoded_prompt}"
             f"?width=1024&height=1024&nologo=true&enhance=true"
@@ -94,12 +97,9 @@ def generate_and_save_ai_image(recipe_obj):
                 save=True
             )
             return True
-
     except Exception as e:
-        print(f"AI Image Generation Error for {recipe_obj.title}: {e}")
-
+        print(f"AI Image Generation Error: {e}")
     return False
-
 
 # ─── USER AUTHENTICATION ───────────────────────────────────────────
 @api_view(['POST'])
@@ -117,7 +117,6 @@ def register_user(request):
         }, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_user(request):
@@ -134,7 +133,6 @@ def login_user(request):
             "user": {"id": user.id, "email": user.email, "first_name": user.first_name}
         })
     return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
-
 
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
@@ -154,10 +152,17 @@ def user_profile(request):
     if first_name:
         user.first_name = first_name
         user.save()
+    
+    profile.health_conditions = request.data.get('health_conditions', profile.health_conditions)
+    profile.dietary_preferences = request.data.get('dietary_preferences', profile.dietary_preferences)
+    profile.save()
+    
     return Response({"message": "Profile updated!"})
 
 
 # ─── CITY & RECIPES ────────────────────────────────────────────────
+# ─── CITY & RECIPES (AUTO-IMAGE GENERATION) ───────────────────────
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def city_list(request):
@@ -165,13 +170,15 @@ def city_list(request):
     serializer = CitySerializer(cities, many=True)
     return Response(serializer.data)
 
-
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def GetRecipesByCity(request):
     city_name = request.query_params.get('city')
+    search_query = request.query_params.get('search')
 
-    if city_name:
+    if search_query:
+        recipes = Recipe.objects.filter(title__icontains=search_query)
+    elif city_name:
         recipes = Recipe.objects.filter(city__name__iexact=city_name)
     else:
         recipes = Recipe.objects.all()
@@ -180,22 +187,17 @@ def GetRecipesByCity(request):
         if not recipe.image:
             generate_and_save_ai_image(recipe)
 
-    serializer = RecipeListSerializer(
-        recipes,
-        many=True,
-        context={'request': request}
-    )
-
+    serializer = RecipeListSerializer(recipes, many=True, context={'request': request})
+    
     if city_name:
         city = City.objects.filter(name__iexact=city_name).first()
-        if city:
-            return Response({
-                "city": CitySerializer(city).data,
-                "recipes": serializer.data
-            })
-
+        return Response({
+            "city": CitySerializer(city).data if city else None,
+            "pandamart_alert": not city.is_pandamart_available if city else False,
+            "recipes": serializer.data
+        })
+    
     return Response(serializer.data)
-
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -219,6 +221,7 @@ def recipe_detail(request, pk):
 
 
 # ─── AI SUBSTITUTE (With Grocery Link) ─────────────────────────────
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def get_ai_substitute(request, pk):
@@ -251,6 +254,9 @@ Your response:"""
         print("===================================")
         print(f"🍽️ Recipe: {recipe.title} | Missing: {ingredient}")
         
+
+        prompt = f"In the recipe '{recipe.title}', what is a good substitute for '{ingredient}'? Give a short Pakistani chef's advice in 1-2 sentences."
+
         completion = groq_client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[
@@ -280,40 +286,35 @@ Your response:"""
     except Exception as e:
         return Response({"error": str(e), "status": "error"}, status=500)
 
-
-# ─── BOOKMARKS / SAVED RECIPES ────────────────────────────────────
+# ─── BOOKMARKS ────────────────────────────────────────────────────
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def toggle_bookmark(request, recipe_id):
     recipe = get_object_or_404(Recipe, pk=recipe_id)
     saved_obj = SavedRecipe.objects.filter(user=request.user, recipe=recipe).first()
-
     if saved_obj:
         saved_obj.delete()
         return Response({"saved": False, "message": "Removed from bookmarks"})
-
     SavedRecipe.objects.create(user=request.user, recipe=recipe)
     return Response({ "saved": True, "message": "Saved to bookmarks" })
-
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def saved_recipes(request):
     saved = SavedRecipe.objects.filter(user=request.user).select_related('recipe')
     serializer = SavedRecipeSerializer(saved, many=True, context={'request': request})
-    return Response({
-        "count": saved.count(),
-        "results": serializer.data
-    })
+    return Response({"count": saved.count(), "results": serializer.data})
 
-
-# ─── HEALTH CHECK ─────────────────────────────────────────────────
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def health_check(request):
+
     return Response({
         "status": "healthy",
         "groq_configured": bool(GROQ_API_KEY),
         "youtube_api": "active",
         "message": "Backend with YouTube & Grocery support is running."
     })
+
+    return Response({"status": "healthy", "groq": bool(GROQ_API_KEY)})
+

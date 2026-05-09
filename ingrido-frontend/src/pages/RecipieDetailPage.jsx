@@ -3,15 +3,12 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import {
   Loader2,
-  Heart,
-  Clock,
-  Users,
-  Flame,
   Utensils,
   ShoppingCart,
   Sparkles,
-  X,
-  ChevronRight,
+  Clock,
+  Users,
+  Flame,
 } from "lucide-react";
 
 export function RecipieDetail() {
@@ -23,18 +20,26 @@ export function RecipieDetail() {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [suggestedIngredients, setSuggestedIngredients] = useState([]);
+  const BACKEND_URL = "http://127.0.0.1:8000";
 
   useEffect(() => {
     const fetchDetail = async () => {
       try {
         const response = await axios.get(
-          `http://127.0.0.1:8000/api/accounts/recipes/${id}/`,
+          `${BACKEND_URL}/api/accounts/recipes/${id}/`,
         );
         setRecipe(response.data);
-        setIsSaved(response.data.is_saved);
         setLoading(false);
-      } catch (error) {
-        console.error("Error fetching recipe details:", error);
+
+        // Update history in LocalStorage
+        const history = JSON.parse(
+          localStorage.getItem("ingrido_history") || "[]",
+        );
+        const filtered = history.filter((item) => item.id !== response.data.id);
+        const updated = [response.data, ...filtered].slice(0, 10);
+        localStorage.setItem("ingrido_history", JSON.stringify(updated));
+      } catch (err) {
+        console.error("Fetch error:", err);
         setLoading(false);
       }
     };
@@ -49,7 +54,7 @@ export function RecipieDetail() {
 
     try {
       const response = await axios.post(
-        `http://127.0.0.1:8000/api/accounts/recipes/${id}/ai-substitute/`,
+        `${BACKEND_URL}/api/accounts/recipes/${id}/ai-substitute/`,
         { ingredient: ingredient },
       );
 
@@ -78,8 +83,8 @@ export function RecipieDetail() {
     const token = localStorage.getItem("token");
     if (!token) return alert("Please login to save!");
     try {
-      const res = await axios.post(
-        `http://127.0.0.1:8000/api/accounts/recipes/${id}/bookmark/`,
+      await axios.post(
+        `${BACKEND_URL}/api/accounts/recipes/${id}/bookmark/`,
         {},
         { headers: { Authorization: `Token ${token}` } },
       );
@@ -89,17 +94,26 @@ export function RecipieDetail() {
     }
   };
 
-  if (loading)
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (!recipe) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-black">
+        Recipe not found.
+      </div>
+    );
+  }
 
   return (
     <>
-      {/* Hero Section - Purana Style */}
-      <section className="border-b border-border bg-secondary/40 mt-20 px-2">
+      {/* Hero Section */}
+      <section className="border-b border-border bg-secondary/40 mt-20 px-4">
         <div className="container py-8 mx-auto max-w-6xl">
           <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl bg-card p-6 shadow-sm md:p-8">
             <h1 className="font-serif text-3xl font-bold text-foreground md:text-4xl lg:text-5xl">
@@ -110,16 +124,20 @@ export function RecipieDetail() {
             </h1>
             <button
               onClick={handleSave}
-              className={`flex h-12 w-12 items-center justify-center rounded-full border transition-all ${isSaved ? "bg-primary text-white" : "bg-background hover:bg-primary/10"}`}
+              className={`flex h-12 w-12 items-center justify-center rounded-full border transition-all ${
+                isSaved
+                  ? "bg-primary text-white"
+                  : "bg-background hover:bg-primary/10"
+              }`}
             >
-              <Heart fill={isSaved ? "white" : "none"} className="h-6 w-6" />
+              ★
             </button>
           </div>
         </div>
       </section>
 
+      {/* Main Visuals & Stats */}
       <section className="container mx-auto max-w-6xl mt-10 grid gap-10 lg:grid-cols-[1.4fr_1fr] px-4">
-        {/* Left: Video ya Image (Updated Logic) */}
         <div className="space-y-4">
           <div className="relative overflow-hidden rounded-2xl bg-black aspect-video shadow-lg ring-1 ring-border">
             {recipe.youtube_video_id ? (
@@ -140,7 +158,6 @@ export function RecipieDetail() {
           </div>
         </div>
 
-        {/* Right: Quick Stats - Purana Style */}
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-3 rounded-2xl border border-border bg-card p-4 shadow-sm sm:grid-cols-4 lg:grid-cols-2">
             <div className="flex items-center gap-3">
@@ -149,7 +166,9 @@ export function RecipieDetail() {
                 <p className="text-[10px] uppercase text-muted-foreground">
                   Cook Time
                 </p>
-                <p className="font-bold text-sm">{recipe.prep_time}</p>
+                <p className="font-bold text-sm">
+                  {recipe.prep_time || "30 mins"}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -167,7 +186,7 @@ export function RecipieDetail() {
                 <p className="text-[10px] uppercase text-muted-foreground">
                   Calories
                 </p>
-                <p className="font-bold text-sm">{recipe.kcal} kcal</p>
+                <p className="font-bold text-sm">{recipe.kcal || "---"} kcal</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -193,7 +212,7 @@ export function RecipieDetail() {
         </div>
       </section>
 
-      {/* Main Content (Ingredients & Directions) - Purana Style */}
+      {/* Ingredients & Directions */}
       <section className="container mx-auto max-w-6xl mt-12 px-4">
         <div className="rounded-2xl border border-border bg-card shadow-md overflow-hidden grid md:grid-cols-2">
           <div className="p-6 md:p-10 border-b md:border-b-0 md:border-r border-border">
@@ -202,7 +221,7 @@ export function RecipieDetail() {
               Ingredients
             </h2>
             <ul className="space-y-4">
-              {recipe.ingredients.split("\n").map(
+              {(recipe.ingredients || "").split("\n").map(
                 (item, i) =>
                   item.trim() && (
                     <li
@@ -222,7 +241,7 @@ export function RecipieDetail() {
               Directions
             </h2>
             <div className="space-y-8">
-              {recipe.instructions
+              {(recipe.instructions || "")
                 .split("\n")
                 .filter((s) => s.trim())
                 .map((step, i) => (
@@ -240,7 +259,7 @@ export function RecipieDetail() {
         </div>
       </section>
 
-      {/* AI Assistant - Purana Bottom Style */}
+      {/* AI Assistant & PandaMart */}
       <section className="container mx-auto max-w-6xl mt-12 px-4 mb-20">
         <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-6 md:p-10">
           <h2 className="text-2xl font-bold font-serif flex items-center gap-2 mb-6">
@@ -257,13 +276,13 @@ export function RecipieDetail() {
             <button
               onClick={handleCheckSubstitute}
               disabled={isAiLoading}
-              className="bg-primary text-white px-8 py-4 rounded-xl font-bold"
+              className="bg-primary text-white px-8 py-4 rounded-xl font-bold transition-opacity disabled:opacity-50"
             >
               {isAiLoading ? "Thinking..." : "Ask Chef AI"}
             </button>
             <button
               onClick={() => window.open("https://www.foodpanda.pk", "_blank")}
-              className="bg-[#D70F64] text-white px-8 py-4 rounded-xl font-bold flex items-center gap-2"
+              className="bg-[#D70F64] text-white px-8 py-4 rounded-xl font-bold flex items-center justify-center gap-2"
             >
               <ShoppingCart size={20} /> Order on PandaMart
             </button>
