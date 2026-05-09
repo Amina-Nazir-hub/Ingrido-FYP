@@ -105,34 +105,35 @@ def city_list(request):
 @permission_classes([AllowAny])
 def GetRecipesByCity(request):
     """
-    GET /api/accounts/recipes/?city=Karachi
-    Ye function City ke mutabiq recipes filter kar ke bhejta hai.
+    Handles both City filtering AND Dashboard Search.
     """
     city_name = request.query_params.get('city')
-    
-    if not city_name:
-        return Response(
-            {"error": "Please provide ?city=CityName query param."},
-            status=status.HTTP_400_BAD_REQUEST
+    search_query = request.query_params.get('search')
+
+    # 1. Search Logic (Dashboard Search Engine ke liye)
+    if search_query:
+        # Title ya description mein check karega (case-insensitive)
+        recipes = Recipe.objects.filter(title__icontains=search_query)
+        recipe_serializer = RecipeListSerializer(
+            recipes, many=True, context={'request': request}
         )
+        return Response(recipe_serializer.data)
 
-    # City dhoondna (e.g. Karachi, Multan)
-    city = get_object_or_404(City, name__iexact=city_name)
-    
-    # Us city se linked saari recipes filter karna
-    recipes = Recipe.objects.filter(city=city)
-    
-    # Recipe list ko serialize karna
-    recipe_serializer = RecipeListSerializer(
-        recipes, many=True, context={'request': request}
-    )
+    # 2. City Logic (Explore page ke liye)
+    if city_name:
+        city = get_object_or_404(City, name__iexact=city_name)
+        recipes = Recipe.objects.filter(city=city)
+        recipe_serializer = RecipeListSerializer(
+            recipes, many=True, context={'request': request}
+        )
+        return Response({
+            "city": CitySerializer(city).data,
+            "pandamart_alert": not city.is_pandamart_available,
+            "recipes": recipe_serializer.data 
+        })
 
-    # Frontend DishesListPage ke format ke mutabiq response
-    return Response({
-        "city": CitySerializer(city).data,
-        "pandamart_alert": not city.is_pandamart_available,
-        "recipes": recipe_serializer.data 
-    })
+    # 3. Default Response
+    return Response({"error": "Provide 'city' or 'search' parameter."}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET'])

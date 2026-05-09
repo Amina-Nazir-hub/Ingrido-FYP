@@ -32,12 +32,8 @@ export function UserProfileSettings() {
         headers: { Authorization: `Token ${token}` },
       })
       .then((res) => {
-        const health =
-          res.data.health_conditions?.map((h) => ({ value: h, label: h })) ||
-          [];
-        const diet =
-          res.data.dietary_preferences?.map((d) => ({ value: d, label: d })) ||
-          [];
+        const health = res.data.health_conditions?.map((h) => ({ value: h, label: h })) || [];
+        const diet = res.data.dietary_preferences?.map((d) => ({ value: d, label: d })) || [];
         setProfile({
           ...res.data,
           health_conditions: health,
@@ -45,7 +41,6 @@ export function UserProfileSettings() {
         });
         if (res.data.first_name) {
           localStorage.setItem("user_name", res.data.first_name);
-          // Initial load par bhi signal bhej dete hain taake Navbar update ho jaye
           window.dispatchEvent(new Event("storage_updated"));
         }
       })
@@ -60,13 +55,9 @@ export function UserProfileSettings() {
         dietary_preferences: profile.dietary_preferences.map((o) => o.value),
       };
 
-      await axios.put(
-        "http://127.0.0.1:8000/api/accounts/profile/",
-        dataToSend,
-        {
-          headers: { Authorization: `Token ${token}` },
-        },
-      );
+      await axios.put("http://127.0.0.1:8000/api/accounts/profile/", dataToSend, {
+        headers: { Authorization: `Token ${token}` },
+      });
       localStorage.setItem("user_name", profile.first_name);
       window.dispatchEvent(new Event("storage_updated"));
 
@@ -76,12 +67,8 @@ export function UserProfileSettings() {
       alert("Update failed!");
     }
   };
-
   const nameForInitial = profile.first_name || "User";
-  const cardInitial =
-    nameForInitial.length > 1
-      ? nameForInitial.substring(0, 2).toUpperCase()
-      : nameForInitial.charAt(0).toUpperCase();
+  const cardInitial = nameForInitial.charAt(0).toUpperCase();
 
   return (
     <div className="min-h-screen bg-background pb-12 pt-32 px-4 font-sans">
@@ -121,9 +108,7 @@ export function UserProfileSettings() {
               <input
                 className="w-full p-4 bg-background border rounded-2xl outline-none focus:ring-2 focus:ring-primary shadow-sm"
                 value={profile.first_name}
-                onChange={(e) =>
-                  setProfile({ ...profile, first_name: e.target.value })
-                }
+                onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
               />
             </div>
 
@@ -135,9 +120,7 @@ export function UserProfileSettings() {
                 isMulti
                 options={ALL_HEALTH}
                 value={profile.health_conditions}
-                onChange={(s) =>
-                  setProfile({ ...profile, health_conditions: s || [] })
-                }
+                onChange={(s) => setProfile({ ...profile, health_conditions: s || [] })}
               />
             </div>
 
@@ -149,9 +132,7 @@ export function UserProfileSettings() {
                 isMulti
                 options={ALL_DIET}
                 value={profile.dietary_preferences}
-                onChange={(s) =>
-                  setProfile({ ...profile, dietary_preferences: s || [] })
-                }
+                onChange={(s) => setProfile({ ...profile, dietary_preferences: s || [] })}
               />
             </div>
 
