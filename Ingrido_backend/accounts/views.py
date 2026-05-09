@@ -1,3 +1,6 @@
+import os
+import requests
+from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
 from django.contrib.auth import authenticate
 from rest_framework.decorators import api_view, permission_classes
@@ -6,7 +9,6 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from dotenv import load_dotenv
-import os
 from groq import Groq
 
 from .models import Recipe, City, SavedRecipe, UserProfile
@@ -18,115 +20,54 @@ from .serializers import (
     UserSerializer
 )
 
+# ─── ENVIRONMENT SETUP ─────────────────────────────────────────────
 load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-print("===================================")
-print("GROQ API Status:", "Connected" if GROQ_API_KEY else "Not Configured")
-if GROQ_API_KEY:
-    print("API Key (first 10 chars):", GROQ_API_KEY[:10])
-print("===================================")
-
 # Initialize Groq client
 groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
-# ─────────────────────────────────────────────
-# PURE AI SUBSTITUTE - No hardcoded data
-# ─────────────────────────────────────────────
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def get_ai_substitute(request, pk):
-    
-    recipe = get_object_or_404(Recipe, pk=pk)
-    ingredient = request.data.get('ingredient', '').strip()
 
-    if not ingredient:
-        return Response({"error": "Ingredient name missing"}, status=400)
-
-    if not groq_client:
-        return Response({
-            "error": "GROQ_API_KEY not configured. Please add to .env file",
-            "setup_url": "https://console.groq.com",
-            "status": "error"
-        }, status=500)
-
+# ─── HELPER FUNCTION: AI IMAGE GENERATION (FREE) ───────────────────
+def generate_and_save_ai_image(recipe_obj):
+    """
+    Pollinations AI se free image generate karke
+    recipe.image field mein permanently save karta hai.
+    """
     try:
-        # Pure AI prompt - AI will read recipe and decide
-        prompt = f"""You are a professional Pakistani chef giving practical advice.
-
-RECIPE NAME: {recipe.title}
-
-FULL INGREDIENTS LIST:
-{recipe.ingredients}
-
-USER ASKS: "I don't have {ingredient}. What should I do?"
-
-YOUR JOB:
-1. First, check if "{ingredient}" is in the ingredients list above.
-
-2. If {ingredient} is NOT in the list:
-   Reply: "This ingredient is not used in {recipe.title}. You don't need it. Just follow the recipe as written."
-
-3. If {ingredient} IS in the list:
-   - If it's ESSENTIAL (onion, garlic, ginger, tomato, chicken, beef, mutton, salt, oil, ghee, rice, flour, green chili, red chili, turmeric, cumin):
-     Reply: "{ingredient} is essential for {recipe.title}. Please buy it from any grocery store."
-
-   - If it's NOT ESSENTIAL (like optional spice, garnish, or can be substituted):
-     Suggest 1-2 practical substitutes that work in Pakistani cooking.
-
-EXAMPLES:
-- For "green chili" when it's essential: "Green chili is essential for the heat in this dish. Please buy fresh green chilies from any store."
-- For "green chili" when optional: "Green chili adds heat. You can use red chili powder (1/4 tsp per chili) or skip it."
-- For "cream" when optional: "Use fresh malai or full-fat coconut milk instead of cream."
-- For "onion": "Onion is essential. Please buy fresh onions."
-- For "turmeric": "Turmeric is essential for color and flavor. Please buy from store - it's very cheap."
-
-Keep response SHORT (1-2 sentences). Be honest and practical.
-
-Your response:"""
-
-        print("===================================")
-        print(f"🍽️ Recipe: {recipe.title}")
-        print(f"🥕 User missing: {ingredient}")
-        print("🤖 Asking AI...")
-        print("===================================")
-
-        completion = groq_client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[
-                {"role": "system", "content": "You are an honest Pakistani chef. Read the recipe ingredients carefully. Tell users to buy only truly essential ingredients. For non-essential items, suggest practical substitutes. Never say 'buy it' for everything. Be specific and helpful."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.6,
-            max_tokens=200
+        # Professional prompt for high quality food images
+        prompt = (
+            f"Professional food photography of {recipe_obj.title}, "
+            f"authentic Pakistani cuisine, high resolution, 4k, cinematic lighting"
         )
-        
-        ai_response = completion.choices[0].message.content.strip()
-        
-        print(f"✅ AI Response: {ai_response}")
-        print("===================================")
-        
-        return Response({
-            "ingredient": ingredient,
-            "recipe": recipe.title,
-            "substitute": ai_response,
-            "status": "success",
-            "provider": "Groq AI"
-        })
-        
+        encoded_prompt = requests.utils.quote(prompt)
+
+        # Pollinations AI API (Free & Unlimited)
+        image_url = (
+            f"https://image.pollinations.ai/prompt/{encoded_prompt}"
+            f"?width=1024&height=1024&nologo=true&enhance=true"
+        )
+
+        response = requests.get(image_url, timeout=30)
+
+        if response.status_code == 200:
+            file_name = f"ai_{recipe_obj.id}.jpg"
+            # Database aur Media folder mein file save karna
+            recipe_obj.image.save(
+                file_name,
+                ContentFile(response.content),
+                save=True
+            )
+            return True
+
     except Exception as e:
-        print(f"❌ Groq Error: {str(e)}")
-        return Response({
-            "error": str(e),
-            "status": "error",
-            "message": "AI service error. Please check your API key."
-        }, status=500)
+        print(f"AI Image Generation Error for {recipe_obj.title}: {e}")
+
+    return False
 
 
-# ─────────────────────────────────────────────
-# USER AUTHENTICATION
-# ─────────────────────────────────────────────
+# ─── USER AUTHENTICATION ───────────────────────────────────────────
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register_user(request):
@@ -135,8 +76,13 @@ def register_user(request):
         user = serializer.save()
         UserProfile.objects.get_or_create(user=user)
         token, _ = Token.objects.get_or_create(user=user)
-        return Response({"token": token.key, "message": "User registered successfully!"}, status=201)
-    return Response(serializer.errors, status=400)
+        return Response({
+            "token": token.key,
+            "user": UserSerializer(user).data,
+            "message": "User registered successfully!"
+        }, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -144,22 +90,24 @@ def login_user(request):
     email = request.data.get('email')
     password = request.data.get('password')
     if not email or not password:
-        return Response({"error": "Email and password required"}, status=400)
+        return Response({"error": "Email and password required"}, status=status.HTTP_400_BAD_REQUEST)
+    
     user = authenticate(username=email, password=password)
     if user:
         token, _ = Token.objects.get_or_create(user=user)
         return Response({
-            "token": token.key, 
+            "token": token.key,
             "user": {"id": user.id, "email": user.email, "first_name": user.first_name}
         })
-    return Response({"error": "Invalid credentials"}, status=401)
+    return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+
 
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
 def user_profile(request):
     user = request.user
+    profile, _ = UserProfile.objects.get_or_create(user=user)
     if request.method == 'GET':
-        profile, _ = UserProfile.objects.get_or_create(user=user)
         return Response({
             "id": user.id,
             "first_name": user.first_name,
@@ -167,72 +115,133 @@ def user_profile(request):
             "health_conditions": profile.health_conditions,
             "dietary_preferences": profile.dietary_preferences,
         })
+    
     first_name = request.data.get('first_name')
     if first_name:
         user.first_name = first_name
         user.save()
     return Response({"message": "Profile updated!"})
 
-# ─────────────────────────────────────────────
-# CITY & RECIPES
-# ─────────────────────────────────────────────
+
+# ─── CITY & RECIPES (UPDATED WITH AUTO-IMAGE GENERATION) ───────────
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def city_list(request):
     cities = City.objects.all().order_by('name')
-    return Response(CitySerializer(cities, many=True).data)
+    serializer = CitySerializer(cities, many=True)
+    return Response(serializer.data)
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def GetRecipesByCity(request):
+    """
+    City ke mutabiq recipes fetch karta hai aur missing images ko 
+    list view load hote hi auto-generate karta hai.
+    """
     city_name = request.query_params.get('city')
-    if not city_name:
-        return Response({"error": "City parameter required"}, status=400)
-    city = get_object_or_404(City, name__iexact=city_name)
-    recipes = Recipe.objects.filter(city=city)
-    return Response({
-        "city": CitySerializer(city).data,
-        "recipes": RecipeListSerializer(recipes, many=True, context={'request': request}).data
-    })
+
+    if city_name:
+        recipes = Recipe.objects.filter(city__name__iexact=city_name)
+    else:
+        recipes = Recipe.objects.all()
+
+    # 🪄 Naya Logic: Har wo recipe jiski image null hai, usay foran generate karein
+    for recipe in recipes:
+        if not recipe.image:
+            generate_and_save_ai_image(recipe)
+
+    serializer = RecipeListSerializer(
+        recipes,
+        many=True,
+        context={'request': request}
+    )
+
+    if city_name:
+        city = City.objects.filter(name__iexact=city_name).first()
+        if city:
+            return Response({
+                "city": CitySerializer(city).data,
+                "recipes": serializer.data
+            })
+
+    return Response(serializer.data)
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def recipe_detail(request, pk):
+    """
+    Recipe details fetch karta hai. Agar image null ho to generate karta hai.
+    """
     recipe = get_object_or_404(Recipe, pk=pk)
-    return Response(RecipeDetailSerializer(recipe, context={'request': request}).data)
 
-# ─────────────────────────────────────────────
-# BOOKMARKS / SAVED RECIPES
-# ─────────────────────────────────────────────
+    if not recipe.image:
+        generate_and_save_ai_image(recipe)
+        recipe.refresh_from_db()
+
+    serializer = RecipeDetailSerializer(recipe, context={'request': request})
+    return Response(serializer.data)
+
+
+# ─── AI SUBSTITUTE ────────────────────────────────────────────────
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def get_ai_substitute(request, pk):
+    recipe = get_object_or_404(Recipe, pk=pk)
+    ingredient = request.data.get('ingredient', '').strip()
+
+    if not ingredient:
+        return Response({"error": "Ingredient name missing"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not groq_client:
+        return Response({"error": "Groq client not configured"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    try:
+        prompt = f"In the recipe '{recipe.title}', what is a good substitute for '{ingredient}'? Give a short and helpful 1-2 sentence tip."
+        completion = groq_client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.6,
+            max_tokens=150
+        )
+        return Response({
+            "ingredient": ingredient,
+            "substitute": completion.choices[0].message.content.strip(),
+            "status": "success"
+        })
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+# ─── BOOKMARKS / SAVED RECIPES ────────────────────────────────────
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def toggle_bookmark(request, recipe_id):
     recipe = get_object_or_404(Recipe, pk=recipe_id)
     saved_obj = SavedRecipe.objects.filter(user=request.user, recipe=recipe).first()
+
     if saved_obj:
         saved_obj.delete()
         return Response({"saved": False, "message": "Removed from bookmarks"})
-    else:
-        SavedRecipe.objects.create(user=request.user, recipe=recipe)
-        return Response({"saved": True, "message": "Saved to bookmarks"})
+
+    SavedRecipe.objects.create(user=request.user, recipe=recipe)
+    return Response({"saved": True, "message": "Saved to bookmarks"})
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def saved_recipes(request):
     saved = SavedRecipe.objects.filter(user=request.user).select_related('recipe')
+    serializer = SavedRecipeSerializer(saved, many=True, context={'request': request})
     return Response({
         "count": saved.count(),
-        "results": SavedRecipeSerializer(saved, many=True, context={'request': request}).data
+        "results": serializer.data
     })
 
-# ─────────────────────────────────────────────
-# HEALTH CHECK
-# ─────────────────────────────────────────────
+
+# ─── HEALTH CHECK ─────────────────────────────────────────────────
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def health_check(request):
-    return Response({
-        "status": "healthy",
-        "groq_configured": bool(GROQ_API_KEY),
-        "message": "Pure AI - AI reads recipe and decides what to suggest"
-    })
+    return Response({"status": "healthy", "message": "Backend with Auto-AI Image Generation is running."})
