@@ -24,9 +24,47 @@ from .serializers import (
 load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+# YouTube API Key from .env or fallback
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY") or "AIzaSyByBTRLlawcXiiIznJh8rprwrSymEmv8Gc"
+
+print("===================================")
+print("GROQ API Status:", "Connected" if GROQ_API_KEY else "Not Configured")
+print("YouTube API Status:", "Active" if YOUTUBE_API_KEY else "Not Configured")
+print("===================================")
 
 # Initialize Groq client
 groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
+
+# Grocery store URL
+GROCERY_STORE_URL = "https://www.foodpanda.pk/brand/pandamart"
+
+
+# ─── HELPER FUNCTION: YOUTUBE VIDEO FETCHING ───────────────────────
+def fetch_youtube_video_id(recipe_title):
+    """
+    YouTube Data API se recipe title ke mutabiq video search karke ID deta hai.
+    """
+    if not YOUTUBE_API_KEY:
+        return None
+    
+    url = "https://www.googleapis.com/youtube/v3/search"
+    params = {
+        'part': 'snippet',
+        'q': f"{recipe_title} authentic Pakistani recipe step by step",
+        'key': YOUTUBE_API_KEY,
+        'maxResults': 1,
+        'type': 'video',
+        'videoEmbeddable': 'true'
+    }
+
+    try:
+        response = requests.get(url, params=params, timeout=5)
+        data = response.json()
+        if "items" in data and len(data["items"]) > 0:
+            return data["items"][0]["id"]["videoId"]
+    except Exception as e:
+        print(f"YouTube API Error: {e}")
+    return None
 
 
 # ─── HELPER FUNCTION: AI IMAGE GENERATION (FREE) ───────────────────
@@ -36,14 +74,11 @@ def generate_and_save_ai_image(recipe_obj):
     recipe.image field mein permanently save karta hai.
     """
     try:
-        # Professional prompt for high quality food images
         prompt = (
             f"Professional food photography of {recipe_obj.title}, "
             f"authentic Pakistani cuisine, high resolution, 4k, cinematic lighting"
         )
         encoded_prompt = requests.utils.quote(prompt)
-
-        # Pollinations AI API (Free & Unlimited)
         image_url = (
             f"https://image.pollinations.ai/prompt/{encoded_prompt}"
             f"?width=1024&height=1024&nologo=true&enhance=true"
@@ -53,7 +88,6 @@ def generate_and_save_ai_image(recipe_obj):
 
         if response.status_code == 200:
             file_name = f"ai_{recipe_obj.id}.jpg"
-            # Database aur Media folder mein file save karna
             recipe_obj.image.save(
                 file_name,
                 ContentFile(response.content),
@@ -123,7 +157,7 @@ def user_profile(request):
     return Response({"message": "Profile updated!"})
 
 
-# ─── CITY & RECIPES (UPDATED WITH AUTO-IMAGE GENERATION) ───────────
+# ─── CITY & RECIPES ────────────────────────────────────────────────
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def city_list(request):
@@ -135,10 +169,6 @@ def city_list(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def GetRecipesByCity(request):
-    """
-    City ke mutabiq recipes fetch karta hai aur missing images ko 
-    list view load hote hi auto-generate karta hai.
-    """
     city_name = request.query_params.get('city')
 
     if city_name:
@@ -146,7 +176,6 @@ def GetRecipesByCity(request):
     else:
         recipes = Recipe.objects.all()
 
-    # 🪄 Naya Logic: Har wo recipe jiski image null hai, usay foran generate karein
     for recipe in recipes:
         if not recipe.image:
             generate_and_save_ai_image(recipe)
@@ -171,20 +200,25 @@ def GetRecipesByCity(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def recipe_detail(request, pk):
-    """
-    Recipe details fetch karta hai. Agar image null ho to generate karta hai.
-    """
     recipe = get_object_or_404(Recipe, pk=pk)
 
+    # 1. AI Image Check
     if not recipe.image:
         generate_and_save_ai_image(recipe)
         recipe.refresh_from_db()
+
+    # 2. YouTube Video Check
+    if not getattr(recipe, 'youtube_video_id', None):
+        video_id = fetch_youtube_video_id(recipe.title)
+        if video_id:
+            recipe.youtube_video_id = video_id
+            recipe.save()
 
     serializer = RecipeDetailSerializer(recipe, context={'request': request})
     return Response(serializer.data)
 
 
-# ─── AI SUBSTITUTE ────────────────────────────────────────────────
+# ─── AI SUBSTITUTE (With Grocery Link) ─────────────────────────────
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def get_ai_substitute(request, pk):
@@ -192,26 +226,59 @@ def get_ai_substitute(request, pk):
     ingredient = request.data.get('ingredient', '').strip()
 
     if not ingredient:
-        return Response({"error": "Ingredient name missing"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "Ingredient name missing"}, status=400)
 
     if not groq_client:
-        return Response({"error": "Groq client not configured"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"error": "GROQ_API_KEY not configured."}, status=500)
 
     try:
-        prompt = f"In the recipe '{recipe.title}', what is a good substitute for '{ingredient}'? Give a short and helpful 1-2 sentence tip."
+        # Prompt adjusted to include [GROCERY] tag for essential items
+        prompt = f"""You are a professional Pakistani chef.
+RECIPE NAME: {recipe.title}
+FULL INGREDIENTS LIST:
+{recipe.ingredients}
+
+USER ASKS: "I don't have {ingredient}. What should I do?"
+
+YOUR JOB:
+1. Check if "{ingredient}" is in the list. If not, say it's not needed.
+2. If it is ESSENTIAL (meat, salt, oil, onion, ginger, garlic, main spices), reply: "{ingredient} is essential for {recipe.title}. Please order it from [GROCERY]."
+3. If it can be substituted, suggest ONE practical Pakistani substitute.
+
+Keep response ONE sentence only.
+Your response:"""
+
+        print("===================================")
+        print(f"🍽️ Recipe: {recipe.title} | Missing: {ingredient}")
+        
         completion = groq_client.chat.completions.create(
             model="llama-3.1-8b-instant",
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": "You are a helpful Pakistani chef. Be short and honest."},
+                {"role": "user", "content": prompt}
+            ],
             temperature=0.6,
             max_tokens=150
         )
+        
+        ai_response = completion.choices[0].message.content.strip()
+        has_grocery_link = "[GROCERY]" in ai_response
+        
+        print(f"✅ AI Response: {ai_response}")
+        print("===================================")
+        
         return Response({
             "ingredient": ingredient,
-            "substitute": completion.choices[0].message.content.strip(),
-            "status": "success"
+            "recipe": recipe.title,
+            "substitute": ai_response,
+            "has_grocery_link": has_grocery_link,
+            "grocery_url": GROCERY_STORE_URL if has_grocery_link else None,
+            "status": "success",
+            "provider": "Groq AI"
         })
+        
     except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"error": str(e), "status": "error"}, status=500)
 
 
 # ─── BOOKMARKS / SAVED RECIPES ────────────────────────────────────
@@ -226,7 +293,7 @@ def toggle_bookmark(request, recipe_id):
         return Response({"saved": False, "message": "Removed from bookmarks"})
 
     SavedRecipe.objects.create(user=request.user, recipe=recipe)
-    return Response({"saved": True, "message": "Saved to bookmarks"})
+    return Response({ "saved": True, "message": "Saved to bookmarks" })
 
 
 @api_view(['GET'])
@@ -244,4 +311,9 @@ def saved_recipes(request):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def health_check(request):
-    return Response({"status": "healthy", "message": "Backend with Auto-AI Image Generation is running."})
+    return Response({
+        "status": "healthy",
+        "groq_configured": bool(GROQ_API_KEY),
+        "youtube_api": "active",
+        "message": "Backend with YouTube & Grocery support is running."
+    })

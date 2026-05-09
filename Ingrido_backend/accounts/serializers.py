@@ -44,54 +44,23 @@ class CitySerializer(serializers.ModelSerializer):
 # ─────────────────────────────────────────────
 class RecipeListSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
-    is_saved = serializers.SerializerMethodField()
-    difficulty = serializers.SerializerMethodField()
 
     class Meta:
         model = Recipe
-        fields = [
-            'id',
-            'title',
-            'image',
-            'prep_time',
-            'kcal',
-            'protein',
-            'category',
-            'difficulty',
-            'is_saved',
-        ]
+        fields = ['id', 'title', 'image', 'prep_time', 'kcal', 'category']
 
     def get_image(self, obj):
         request = self.context.get('request')
-
         if obj.image:
             if request:
                 return request.build_absolute_uri(obj.image.url)
             return obj.image.url
-
         return None
-
-    def get_is_saved(self, obj):
-        request = self.context.get('request')
-
-        if request and request.user.is_authenticated:
-            return SavedRecipe.objects.filter(
-                user=request.user,
-                recipe=obj
-            ).exists()
-
-        return False
-
-    def get_difficulty(self, obj):
-        # Simple derived field
-        if obj.category and 'Quick' in obj.category:
-            return "Easy"
-        return "Medium"
 
 
 # ─────────────────────────────────────────────
 # 4. RECIPE DETAIL SERIALIZER
-# Used on recipe detail page
+# Used on single recipe detail page
 # ─────────────────────────────────────────────
 class RecipeDetailSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
@@ -100,27 +69,38 @@ class RecipeDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Recipe
-        fields = '__all__'
+        # Hum ne 'youtube_video_id' ko yahan list mein shamil kiya hai
+        fields = [
+            'id', 
+            'title', 
+            'category', 
+            'image', 
+            'youtube_video_id', 
+            'kcal', 
+            'prep_time', 
+            'protein', 
+            'ingredients', 
+            'instructions', 
+            'substitutions', 
+            'city_name', 
+            'is_saved'
+        ]
 
     def get_image(self, obj):
         request = self.context.get('request')
-
         if obj.image:
             if request:
                 return request.build_absolute_uri(obj.image.url)
             return obj.image.url
-
         return None
 
     def get_is_saved(self, obj):
         request = self.context.get('request')
-
         if request and request.user.is_authenticated:
             return SavedRecipe.objects.filter(
                 user=request.user,
                 recipe=obj
             ).exists()
-
         return False
 
 
@@ -152,10 +132,8 @@ class SavedRecipeSerializer(serializers.ModelSerializer):
 
     def get_image(self, obj):
         request = self.context.get('request')
-
         if obj.recipe.image:
             if request:
                 return request.build_absolute_uri(obj.recipe.image.url)
             return obj.recipe.image.url
-
         return None
