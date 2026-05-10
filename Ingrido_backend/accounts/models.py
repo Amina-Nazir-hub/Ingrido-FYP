@@ -65,6 +65,14 @@ class Recipe(models.Model):
         null=True
     )
 
+    # YouTube Video ID (e.g. dQw4w9WgXcQ)
+    # Isme sirf video ka unique code save hoga
+    youtube_video_id = models.CharField(
+        max_length=50, 
+        blank=True, 
+        null=True
+    )
+
     kcal = models.IntegerField()
     prep_time = models.CharField(max_length=50)
     protein = models.CharField(max_length=50)
@@ -100,8 +108,8 @@ class SavedRecipe(models.Model):
     saved_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        # User aik hi recipe ko bar bar save nahi kar sakta
         unique_together = ('user', 'recipe')
-        ordering = ['-saved_at']
 
     def __str__(self):
         return f"{self.user.username} saved {self.recipe.title}"

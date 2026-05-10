@@ -1,9 +1,13 @@
 import { createContext, useContext, useState, useEffect } from "react";
+
 const AuthContext = createContext();
+
 export function AuthProvider({ children }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Jab page refresh ho, toh localStorage se name uthao
   useEffect(() => {
     const token = localStorage.getItem("ingrido_token");
     const name = localStorage.getItem("user_name");
@@ -13,12 +17,16 @@ export function AuthProvider({ children }) {
     }
     setLoading(false);
   }, []);
+
   const login = (userData) => {
     setIsLoggedIn(true);
-    const name = userData?.name || localStorage.getItem("user_name") || "User";
+    // User data se name lein, warna "User" default rakhein
+    const name = userData?.name || "User"; 
     setUser({ name });
     localStorage.setItem("isLoggedIn", "true");
+    localStorage.setItem("user_name", name); 
   };
+
   const logout = () => {
     setIsLoggedIn(false);
     setUser(null);
@@ -32,4 +40,5 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   );
 }
+
 export const useAuth = () => useContext(AuthContext);
