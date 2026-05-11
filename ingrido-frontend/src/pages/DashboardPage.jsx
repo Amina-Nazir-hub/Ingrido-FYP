@@ -1,36 +1,59 @@
 import { useState, useEffect, useCallback } from "react";
+import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { WelcomeHero, RecipeGrid } from "../layouts/DashBoardLayout";
+import { Loader2 } from "lucide-react";
 
-export function Dashboard() {
+export function DashboardPage() {
   const { user } = useAuth();
   const [viewHistory, setViewHistory] = useState([]);
-  const [displayCards, setDisplayCards] = useState([]); 
-  const currentName = user?.name || localStorage.getItem("user_name") || "User";
+  const [recommendedCards, setRecommendedCards] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const BACKEND_BASE = "http://127.0.0.1:8000";
 
-  const loadContent = useCallback(() => {
-    const saved = JSON.parse(localStorage.getItem("ingrido_history") || "[]");
-    setViewHistory(saved);
+  const currentName = user?.first_name || user?.username || localStorage.getItem("user_name") || "Chef";
 
-    const temp = JSON.parse(localStorage.getItem("temp_dashboard_cards") || "[]");
-    if (temp.length > 0) {
-      setDisplayCards(temp);
+  const loadContent = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${BACKEND_BASE}/api/accounts/recipes/dashboard/`);
+      setRecommendedCards(res.data);
+      const saved = JSON.parse(localStorage.getItem("ingrido_history") || "[]");
+      setViewHistory(saved);
+    } catch (err) {
+      console.error("Dashboard error:", err);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    loadContent();
-    window.addEventListener('focus', loadContent);
-    return () => window.removeEventListener('focus', loadContent);
-  }, [loadContent]);
+  useEffect(() => { loadContent(); }, [loadContent]);
 
   return (
     <div className="min-h-screen pb-20 bg-background">
       <div className="container mx-auto px-4 py-8">
-        <WelcomeHero name={currentName} onSelectRecipe={(items) => { setDisplayCards(items); localStorage.setItem("temp_dashboard_cards", JSON.stringify(items)); }} />
-        {displayCards.length > 0 && <RecipeGrid items={displayCards} title="Search Results" isSearch={true} onClear={() => { setDisplayCards([]); localStorage.removeItem("temp_dashboard_cards"); }} />}
-        {viewHistory.length > 0 && <RecipeGrid items={viewHistory} title="Recently Viewed" onClear={() => { setViewHistory([]); localStorage.removeItem("ingrido_history"); }} />}
+        <WelcomeHero name={currentName} />
+        
+        <div className="mt-10">
+          {loading ? (
+            <div className="flex justify-center py-20">
+              <Loader2 className="animate-spin text-primary w-12 h-12" />
+            </div>
+          ) : (
+            <>
+              <RecipeGrid items={recommendedCards} title="Recommended Recipes" />
+              {viewHistory.length > 0 && (
+                <RecipeGrid 
+                  items={viewHistory} 
+                  title="Recently Viewed" 
+                  onClear={() => { setViewHistory([]); localStorage.removeItem("ingrido_history"); }} 
+                />
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
 }
+export default DashboardPage;

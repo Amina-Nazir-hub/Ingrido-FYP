@@ -60,7 +60,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'ingrido_db',
         'USER': 'postgres',
-        'PASSWORD': 'pakpost000'
+        'PASSWORD': 'amna@hanu12'
     }
 }
 

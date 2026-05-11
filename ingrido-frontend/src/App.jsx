@@ -4,7 +4,8 @@ import { Navbar } from "./components/NavBar";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { LandingPage } from "./pages/LandingPage";
-import { Dashboard } from "./pages/DashboardPage";
+import { DashboardPage as Dashboard } from "./pages/DashboardPage";
+import SearchResultsPage from "./pages/SearchResultsPage"; // Nayi file
 import { Footer } from "./components/Footer";
 import { PlannerPage } from "./pages/PlannerPage";
 import CityPage from "./pages/CityPage";
@@ -19,30 +20,25 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Navbar />
-
         <main className="min-h-screen">
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/search-results" element={<SearchResultsPage />} />
             <Route path="/planner" element={<PlannerPage />} />
             <Route path="/city" element={<CityPage />} />
-            <Route
-              path="city/:cityName/dishesList"
-              element={<DishesListPage />}
-            />
+            <Route path="city/:cityName/dishesList" element={<DishesListPage />} />
             <Route path="/saved" element={<SavedPage />} />
             <Route path="/profile" element={<UserProfileSettings />} />
             <Route path="/recipe/:id" element={<RecipieDetail />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
-
         <Footer />
       </AuthProvider>
     </BrowserRouter>
   );
 }
-
 export default App;
