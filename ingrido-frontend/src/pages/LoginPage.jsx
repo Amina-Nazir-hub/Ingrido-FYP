@@ -1,9 +1,12 @@
-import { UserLogin } from "../components/UserLogin.jsx";
+import React from "react";
+import { UserLogin } from "../components/UserLogin";
 
-export function LoginPage() {
+const LoginPage = () => {
   return (
-    <>
+    <div className="login-page-container">
       <UserLogin />
-    </>
+    </div>
   );
-}
+};
+
+export default LoginPage; // ✅ Yeh line App.jsx ka error khatam karegi

@@ -1,9 +1,12 @@
 import { UserRegister } from "../components/UserRegister.jsx";
 
-export function RegisterPage() {
+function RegisterPage() {
   return (
     <>
       <UserRegister />
     </>
   );
 }
+
+// Ye line lazmi honi chahiye:
+export default RegisterPage;

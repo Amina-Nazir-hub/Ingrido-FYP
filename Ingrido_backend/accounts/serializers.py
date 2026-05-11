@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import City, Recipe, SavedRecipe, UserProfile
+from .models import City, Recipe, SavedRecipe, UserProfile, SavedMealPlan
 
 
 # ─────────────────────────────────────────────
@@ -137,3 +137,61 @@ class SavedRecipeSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.recipe.image.url)
             return obj.recipe.image.url
         return None
+
+
+# ─────────────────────────────────────────────
+# 6. SAVED MEAL PLAN SERIALIZER (NEW - For Weekly Meal Planner)
+# ─────────────────────────────────────────────
+class SavedMealPlanSerializer(serializers.ModelSerializer):
+    """
+    Serializer for saved meal plans
+    Used to convert SavedMealPlan model to JSON and back
+    """
+    
+    user_name = serializers.SerializerMethodField()
+    plan_age_days = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = SavedMealPlan
+        fields = [
+            'id',
+            'user',
+            'user_name',
+            'diet_type',
+            'weekly_plan',
+            'is_active',
+            'created_at',
+            'updated_at',
+            'plan_age_days'
+        ]
+        read_only_fields = ['id', 'user', 'created_at', 'updated_at', 'user_name', 'plan_age_days']
+    
+    def get_user_name(self, obj):
+        """Get username for display"""
+        return obj.user.username if obj.user else None
+    
+    def get_plan_age_days(self, obj):
+        """Calculate how many days old the plan is"""
+        from datetime import datetime
+        if obj.created_at:
+            return (datetime.now().date() - obj.created_at.date()).days
+        return 0
+
+
+# ─────────────────────────────────────────────
+# 7. SIMPLE MEAL PLAN SERIALIZER (For API responses)
+# ─────────────────────────────────────────────
+class MealPlanResponseSerializer(serializers.Serializer):
+    """
+    Serializer for meal plan API responses
+    This doesn't need a model, just for response formatting
+    """
+    weekly_plan = serializers.ListField()
+    diet_type = serializers.CharField()
+    plan_id = serializers.IntegerField()
+    created_at = serializers.DateTimeField()
+    message = serializers.CharField(required=False)
+    used_preferences = serializers.DictField(required=False)
+    has_saved_plan = serializers.BooleanField(required=False)
+    is_expired = serializers.BooleanField(required=False)
+    days_remaining = serializers.IntegerField(required=False)
