@@ -7,7 +7,7 @@ import { LandingPage } from "./pages/LandingPage";
 import { DashboardPage as Dashboard } from "./pages/DashboardPage";
 import SearchResultsPage from "./pages/SearchResultsPage"; // Nayi file
 import { Footer } from "./components/Footer";
-import { PlannerPage } from "./pages/PlannerPage";
+import PlannerPage from "./pages/PlannerPage";
 import CityPage from "./pages/CityPage";
 import DishesListPage from "./pages/DishesListPage";
 import SavedPage from "./pages/SavedPage";
