@@ -113,3 +113,34 @@ class SavedRecipe(models.Model):
 
     def __str__(self):
         return f"{self.user.username} saved {self.recipe.title}"
+
+
+# ─────────────────────────────────────────────
+# 5. SAVED MEAL PLAN MODEL (NEW - For Weekly Meal Planner)
+# ─────────────────────────────────────────────
+class SavedMealPlan(models.Model):
+    DIET_TYPES = [
+        ('lite', 'Lite & Healthy'),
+        ('spicy', 'Spicy & Flavorful'),
+        ('balanced', 'Balanced'),
+        ('without_preference', 'Without Health Preference'),
+    ]
+    
+    user = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        related_name='saved_meal_plans'
+    )
+    diet_type = models.CharField(max_length=20, choices=DIET_TYPES)
+    weekly_plan = models.JSONField(default=dict)  # Stores complete 7-day plan
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Saved Meal Plan"
+        verbose_name_plural = "Saved Meal Plans"
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.diet_type} ({self.created_at.date()})"

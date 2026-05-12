@@ -1,13 +1,14 @@
 import { AuthProvider } from "./context/AuthContext";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Navbar } from "./components/NavBar";
-import { LoginPage } from "./pages/LoginPage";
-import { RegisterPage } from "./pages/RegisterPage";
+import LoginPage from "./pages/LoginPage";        // ✅ Default import (no curly braces)
+import RegisterPage from "./pages/RegisterPage";  // ✅ Default import (no curly braces)
 import { LandingPage } from "./pages/LandingPage";
 import { DashboardPage as Dashboard } from "./pages/DashboardPage";
-import SearchResultsPage from "./pages/SearchResultsPage"; // Nayi file
+import SearchResultsPage from "./pages/SearchResultsPage";
 import { Footer } from "./components/Footer";
 import PlannerPage from "./pages/PlannerPage";
+import PlannerPage from "./pages/WeeklyPlanPage";
 import CityPage from "./pages/CityPage";
 import DishesListPage from "./pages/DishesListPage";
 import SavedPage from "./pages/SavedPage";
@@ -41,4 +42,5 @@ function App() {
     </BrowserRouter>
   );
 }
+
 export default App;
