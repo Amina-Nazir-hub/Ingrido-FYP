@@ -7,7 +7,6 @@ import { LandingPage } from "./pages/LandingPage";
 import { DashboardPage as Dashboard } from "./pages/DashboardPage";
 import SearchResultsPage from "./pages/SearchResultsPage";
 import { Footer } from "./components/Footer";
-import PlannerPage from "./pages/PlannerPage";
 import PlannerPage from "./pages/WeeklyPlanPage";
 import CityPage from "./pages/CityPage";
 import DishesListPage from "./pages/DishesListPage";
@@ -33,7 +32,7 @@ function App() {
             <Route path="city/:cityName/dishesList" element={<DishesListPage />} />
             <Route path="/saved" element={<SavedPage />} />
             <Route path="/profile" element={<UserProfileSettings />} />
-            <Route path="/recipe/:id" element={<RecipieDetail />} />
+            <Route path="/recipe/:id?" element={<RecipieDetail />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>

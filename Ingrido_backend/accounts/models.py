@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-
 # ─────────────────────────────────────────────
 # 1. USER PROFILE MODEL
 # ─────────────────────────────────────────────
@@ -19,111 +18,78 @@ class UserProfile(models.Model):
 # ─────────────────────────────────────────────
 class City(models.Model):
     name = models.CharField(max_length=100, unique=True)
-    region = models.CharField(
-        max_length=100
-    )  # e.g. Punjab, Sindh, Gilgit-Baltistan
-    tagline = models.CharField(
-        max_length=255,
-        blank=True,
-        null=True
-    )  # e.g. "The City of Lights"
+    region = models.CharField(max_length=100)  # e.g. Punjab, Sindh
+    tagline = models.CharField(max_length=255, blank=True, null=True)
     latitude = models.DecimalField(max_digits=9, decimal_places=6)
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
     is_pandamart_available = models.BooleanField(default=False)
-    image = models.ImageField(
-        upload_to='city_images/',
-        blank=True,
-        null=True
-    )
-
-    class Meta:
-        verbose_name_plural = "Cities"
+    image = models.ImageField(upload_to='city_images/', blank=True, null=True)
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        verbose_name_plural = "Cities"
 
 
 # ─────────────────────────────────────────────
 # 3. RECIPE MODEL
 # ─────────────────────────────────────────────
 class Recipe(models.Model):
-    city = models.ForeignKey(
-        City,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='recipes'
-    )
-
     title = models.CharField(max_length=200)
-    category = models.CharField(max_length=100)
-
-    # AI-generated or manually uploaded image
-    image = models.ImageField(
-        upload_to='recipes/',
-        blank=True,
-        null=True
-    )
-
-    # YouTube Video ID (e.g. dQw4w9WgXcQ)
-    # Isme sirf video ka unique code save hoga
-    youtube_video_id = models.CharField(
-        max_length=50, 
-        blank=True, 
-        null=True
-    )
-
-    kcal = models.IntegerField()
-    prep_time = models.CharField(max_length=50)
-    protein = models.CharField(max_length=50)
-
-    ingredients = models.TextField()
-    instructions = models.TextField()
-
-    # Example:
-    # {"cream": "Use 3/4 cup milk + 1/4 cup butter"}
-    substitutions = models.JSONField(
-        default=dict,
+    # Added default to prevent migration errors
+    description = models.TextField(default="No description provided")
+    ingredients = models.TextField(default="No ingredients listed") 
+    instructions = models.TextField(default="No instructions provided")
+    prep_time = models.IntegerField(help_text="Time in minutes", default=0)
+    calories = models.IntegerField(default=0)
+    image = models.ImageField(upload_to='recipe_images/', null=True, blank=True)
+    
+    # city field updated: null=True, blank=True allows migration without a default value
+    city = models.ForeignKey(
+        City, 
+        on_delete=models.CASCADE, 
+        related_name='recipes', 
+        null=True, 
         blank=True
     )
+    
+    # Categories
+    is_vegetarian = models.BooleanField(default=False)
+    is_sugar_free = models.BooleanField(default=False)
+    is_low_fat = models.BooleanField(default=False)
 
     def __str__(self):
         return self.title
 
 
 # ─────────────────────────────────────────────
-# 4. SAVED RECIPE MODEL
+# 4. SAVED RECIPE (BOOKMARKS)
 # ─────────────────────────────────────────────
 class SavedRecipe(models.Model):
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='saved_recipes'
-    )
-    recipe = models.ForeignKey(
-        Recipe,
-        on_delete=models.CASCADE,
-        related_name='saved_by'
-    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='saved_recipes')
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
     saved_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        # User aik hi recipe ko bar bar save nahi kar sakta
         unique_together = ('user', 'recipe')
 
-    def __str__(self):
-        return f"{self.user.username} saved {self.recipe.title}"
-
 
 # ─────────────────────────────────────────────
-# 5. SAVED MEAL PLAN MODEL (NEW - For Weekly Meal Planner)
+# 5. SAVED MEAL PLAN MODEL
 # ─────────────────────────────────────────────
 class SavedMealPlan(models.Model):
-    DIET_TYPES = [
-        ('lite', 'Lite & Healthy'),
-        ('spicy', 'Spicy & Flavorful'),
+    HEALTH_CONDITIONS = [
+        ('diabetes', 'Diabetes'),
+        ('blood_pressure', 'Blood Pressure'),
+        ('heart_condition', 'Heart Condition'),
         ('balanced', 'Balanced'),
-        ('without_preference', 'Without Health Preference'),
+    ]
+    
+    DIETARY_PREFS = [
+        ('veg', 'Vegetarian'),
+        ('non_veg', 'Non-Vegetarian'),
+        ('both', 'Both'),
     ]
     
     user = models.ForeignKey(
@@ -131,16 +97,26 @@ class SavedMealPlan(models.Model):
         on_delete=models.CASCADE, 
         related_name='saved_meal_plans'
     )
-    diet_type = models.CharField(max_length=20, choices=DIET_TYPES)
-    weekly_plan = models.JSONField(default=dict)  # Stores complete 7-day plan
+    
+    health_condition = models.CharField(
+        max_length=50, 
+        choices=HEALTH_CONDITIONS, 
+        default='balanced'
+    )
+    dietary_preference = models.CharField(
+        max_length=50, 
+        choices=DIETARY_PREFS, 
+        default='both'
+    )
+    
+    weekly_plan = models.JSONField(default=list) 
+    
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
+    def __str__(self):
+        return f"Plan for {self.user.username} - {self.created_at.date()}"
+
     class Meta:
         ordering = ['-created_at']
-        verbose_name = "Saved Meal Plan"
-        verbose_name_plural = "Saved Meal Plans"
-    
-    def __str__(self):
-        return f"{self.user.username} - {self.diet_type} ({self.created_at.date()})"

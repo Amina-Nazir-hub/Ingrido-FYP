@@ -18,14 +18,18 @@ import {
   Video,
   ShoppingBag,
   Trash2,
+  Droplet,
+  Activity,
+  Apple,
+  Utensils,
 } from "lucide-react";
 
 // --- Meal Card Component ---
-const MealCard = ({ meal, mealType, onViewVideo, onOrderPandamart }) => {
+const MealCard = ({ meal, mealType, onViewVideo, onOrderPandamart, onTitleClick }) => {
   if (!meal) return null;
   
   return (
-    <div className="p-5 hover:bg-secondary/20 transition border-b last:border-b-0 border-border">
+    <div className="p-5 transition border-b last:border-b-0 border-border">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
@@ -34,12 +38,34 @@ const MealCard = ({ meal, mealType, onViewVideo, onOrderPandamart }) => {
               {mealType}
             </span>
           </div>
-          <h3 className="text-lg font-semibold text-foreground mb-2">
-            {meal.title}
-          </h3>
+          {/* Recipe title - clickable with underline on hover */}
+          <button
+            onClick={() => onTitleClick(meal)}
+            className="text-left group w-full"
+          >
+            <h3 className="text-lg font-semibold text-foreground mb-2 group-hover:underline group-hover:text-[#b17b46] transition-colors">
+              {meal.title}
+            </h3>
+          </button>
           <p className="text-sm text-muted-foreground mb-3">
             {meal.description}
           </p>
+
+          {/* Dietary Tag */}
+          {meal.dietary_type && (
+            <div className="mb-3">
+              <span className={`text-xs px-2 py-1 rounded-full ${
+                meal.dietary_type === 'veg' 
+                  ? 'bg-green-100 text-green-700' 
+                  : meal.dietary_type === 'non_veg'
+                  ? 'bg-red-100 text-red-700'
+                  : 'bg-blue-100 text-blue-700'
+              }`}>
+                {meal.dietary_type === 'veg' ? '🌱 Vegetarian' : 
+                 meal.dietary_type === 'non_veg' ? '🍗 Non-Veg' : '🥘 Mixed'}
+              </span>
+            </div>
+          )}
 
           {/* Nutrition Info */}
           {(meal.calories || meal.prep_time) && (
@@ -93,7 +119,7 @@ const MealCard = ({ meal, mealType, onViewVideo, onOrderPandamart }) => {
 };
 
 // --- Day Schedule Component ---
-const DaySchedule = ({ dayData, onViewVideo, onOrderPandamart }) => {
+const DaySchedule = ({ dayData, onViewVideo, onOrderPandamart, onRecipeTitleClick }) => {
   if (!dayData) return null;
   
   return (
@@ -115,6 +141,7 @@ const DaySchedule = ({ dayData, onViewVideo, onOrderPandamart }) => {
             mealType="Breakfast"
             onViewVideo={onViewVideo}
             onOrderPandamart={onOrderPandamart}
+            onTitleClick={onRecipeTitleClick}
           />
         )}
         {dayData.lunch && (
@@ -123,6 +150,7 @@ const DaySchedule = ({ dayData, onViewVideo, onOrderPandamart }) => {
             mealType="Lunch"
             onViewVideo={onViewVideo}
             onOrderPandamart={onOrderPandamart}
+            onTitleClick={onRecipeTitleClick}
           />
         )}
         {dayData.dinner && (
@@ -131,6 +159,7 @@ const DaySchedule = ({ dayData, onViewVideo, onOrderPandamart }) => {
             mealType="Dinner"
             onViewVideo={onViewVideo}
             onOrderPandamart={onOrderPandamart}
+            onTitleClick={onRecipeTitleClick}
           />
         )}
       </div>
@@ -138,8 +167,8 @@ const DaySchedule = ({ dayData, onViewVideo, onOrderPandamart }) => {
   );
 };
 
-// --- Diet Option Card Component ---
-const DietOptionCard = ({ icon: Icon, title, description, isSelected, isRecommended, onClick }) => {
+// --- Health Condition Card Component ---
+const HealthConditionCard = ({ icon: Icon, title, description, isSelected, isRecommended, onClick }) => {
   return (
     <button
       onClick={onClick}
@@ -167,6 +196,32 @@ const DietOptionCard = ({ icon: Icon, title, description, isSelected, isRecommen
   );
 };
 
+// --- Dietary Preference Card Component ---
+const DietaryPreferenceCard = ({ icon: Icon, title, description, isSelected, onClick }) => {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex flex-col items-center text-center p-4 rounded-xl border-2 transition-all ${
+        isSelected
+          ? "border-[#b17b46] bg-[#b17b46]/10 shadow-lg"
+          : "border-border bg-card hover:border-[#b17b46]/50"
+      }`}
+    >
+      <div
+        className={`p-2 rounded-full mb-2 ${
+          isSelected ? "bg-[#b17b46] text-white" : "bg-secondary text-[#b17b46]"
+        }`}
+      >
+        <Icon className="h-5 w-5" />
+      </div>
+      <h3 className="font-semibold text-foreground text-sm">{title}</h3>
+      {description && (
+        <p className="text-xs text-muted-foreground mt-1">{description}</p>
+      )}
+    </button>
+  );
+};
+
 // --- Main WeeklyPlanPage Component ---
 const WeeklyPlanPage = () => {
   const navigate = useNavigate();
@@ -175,487 +230,417 @@ const WeeklyPlanPage = () => {
   const [weeklyPlan, setWeeklyPlan] = useState([]);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
-  const [selectedDiet, setSelectedDiet] = useState(null);
-  const [showOptions, setShowOptions] = useState(true);
+  const [selectedHealthCondition, setSelectedHealthCondition] = useState(null);
+  const [selectedDietaryPref, setSelectedDietaryPref] = useState(null);
   const [currentPlanId, setCurrentPlanId] = useState(null);
   const [planCreatedAt, setPlanCreatedAt] = useState(null);
   const [isExpired, setIsExpired] = useState(false);
   const [daysRemaining, setDaysRemaining] = useState(0);
-  const [userHealthPrefs, setUserHealthPrefs] = useState({ health_conditions: [], dietary_preferences: [] });
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Diet options
-  const dietOptions = [
-    {
-      id: "without_preference",
-      title: "Without Health Preference",
-      description: "No specific dietary restrictions - enjoy a variety of meals",
-      icon: User,
-    },
-    {
-      id: "lite",
-      title: "Lite & Healthy",
-      description: "Low calorie, nutritious meals with balanced portions",
-      icon: Salad,
-    },
-    {
-      id: "spicy",
-      title: "Spicy & Flavorful",
-      description: "Bold flavors, aromatic spices, and a kick of heat",
-      icon: SpicyIcon,
-    },
-    {
-      id: "balanced",
-      title: "Balanced",
-      description: "Perfect mix of taste, nutrition, and satisfaction",
-      icon: Heart,
-    },
+  const healthOptions = [
+    { id: "diabetes", title: "Diabetes", description: "Low sugar, controlled carbs", icon: Droplet },
+    { id: "blood_pressure", title: "Blood Pressure", description: "Low sodium, heart-healthy", icon: Activity },
+    { id: "heart_condition", title: "Heart Condition", description: "Low cholesterol, lean proteins", icon: Heart },
+    { id: "balanced", title: "Balanced", description: "Perfect mix of taste and nutrition", icon: Apple },
   ];
 
-  // Fetch user health preferences from backend
-  const fetchUserHealthPreferences = async () => {
-    const token = localStorage.getItem("ingrido_token");
-    if (!token) return null;
+  const dietaryOptions = [
+    { id: "veg", title: "Vegetarian", description: "Plant-based meals only", icon: Salad },
+    { id: "non_veg", title: "Non-Vegetarian", description: "Includes meat and eggs", icon: ChefHat },
+    { id: "both", title: "Both", description: "Mix of veg & non-veg", icon: Utensils },
+  ];
 
-    try {
-      const response = await axios.get(
-        `${BACKEND_URL}/api/accounts/user/health-preferences/`,
-        { headers: { Authorization: `Token ${token}` } }
-      );
-      setUserHealthPrefs(response.data);
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching health preferences:", error);
-      return null;
+  // Handler for clicking on a recipe title
+  const handleRecipeTitleClick = (meal) => {
+    if (!meal || !meal.title) {
+      console.error("No meal title provided");
+      return;
     }
+    
+    // Encode the title to handle special characters and spaces
+    const encodedTitle = encodeURIComponent(meal.title);
+    console.log("Navigating to recipe:", meal.title);
+    console.log("Encoded title:", encodedTitle);
+    
+    // Navigate to recipe detail page with title parameter
+    navigate(`/recipe?title=${encodedTitle}`);
   };
 
-  // Check for existing saved plan
-  const checkSavedPlan = async () => {
+  // Generate function - uses current selected preferences
+  const generateMealPlan = async (healthCondition, dietaryPref) => {
     const token = localStorage.getItem("ingrido_token");
     if (!token) {
-      setShowOptions(true);
+      setError("Please login to generate meal plans");
+      return;
+    }
+
+    // If no preferences provided, try to use existing ones
+    if (!healthCondition || !dietaryPref) {
+      setError("Please select both health condition and dietary preference");
       return;
     }
 
     try {
-      const response = await axios.get(
-        `${BACKEND_URL}/api/accounts/meal-planner/current/`,
-        { headers: { Authorization: `Token ${token}` } }
-      );
-
-      if (response.data.has_saved_plan) {
-        if (response.data.is_expired) {
-          setIsExpired(true);
-          setDaysRemaining(0);
-          console.log("Plan expired, generating new one...");
-          await generateMealPlan(response.data.diet_type, true);
-        } else {
-          setWeeklyPlan(response.data.weekly_plan);
-          setSelectedDiet(response.data.diet_type);
-          setCurrentPlanId(response.data.plan_id);
-          setPlanCreatedAt(response.data.created_at);
-          setDaysRemaining(response.data.days_remaining);
-          setIsExpired(false);
-          setShowOptions(false);
-        }
-      }
-    } catch (error) {
-      console.error("Error checking saved plan:", error);
-      setShowOptions(true);
-    }
-  };
-
-  // Generate meal plan using backend API
-  const generateMealPlan = async (dietType, isAutoRegenerate = false) => {
-    const token = localStorage.getItem("ingrido_token");
-
-    try {
       setGenerating(true);
       setError(null);
+      const response = await axios.post(
+        `${BACKEND_URL}/api/accounts/meal-planner/generate/`,
+        { health_condition: healthCondition, dietary_preference: dietaryPref },
+        { headers: { Authorization: `Token ${token}` } }
+      );
       
-      if (!isAutoRegenerate) {
-        setShowOptions(false);
-      }
-
-      if (token) {
-        const response = await axios.post(
-          `${BACKEND_URL}/api/accounts/meal-planner/generate/`,
-          { diet_type: dietType },
-          { headers: { Authorization: `Token ${token}` } }
-        );
-        
-        setWeeklyPlan(response.data.weekly_plan);
-        setSelectedDiet(dietType);
-        setCurrentPlanId(response.data.plan_id);
-        setPlanCreatedAt(response.data.created_at);
-        setIsExpired(false);
-        setDaysRemaining(7);
-        setShowOptions(false);
-        
-        if (!isAutoRegenerate) {
-          const healthMsg = response.data.used_preferences?.health_conditions?.length > 0 
-            ? `Using your health preferences: ${response.data.used_preferences.health_conditions.join(", ")}`
-            : "Plan generated successfully!";
-          console.log(healthMsg);
-        }
-      } else {
-        console.log("User not logged in, using mock data");
-        setTimeout(() => {
-          const mockData = getMock7DayMealPlan(dietType);
-          setWeeklyPlan(mockData);
-          setSelectedDiet(dietType);
-          setShowOptions(false);
-          setGenerating(false);
-        }, 1500);
-        return;
-      }
+      console.log("Generated plan:", response.data);
       
+      setWeeklyPlan(response.data.weekly_plan);
+      setCurrentPlanId(response.data.plan_id);
+      setPlanCreatedAt(new Date().toISOString());
+      setIsExpired(false);
+      setDaysRemaining(7);
+      
+      // Store in localStorage as backup
+      localStorage.setItem('current_meal_plan', JSON.stringify({
+        weekly_plan: response.data.weekly_plan,
+        plan_id: response.data.plan_id,
+        created_at: new Date().toISOString(),
+        health_condition: healthCondition,
+        dietary_pref: dietaryPref
+      }));
     } catch (error) {
-      console.error("Error generating meal plan:", error);
-      const mockData = getMock7DayMealPlan(dietType);
-      setWeeklyPlan(mockData);
-      setSelectedDiet(dietType);
-      setShowOptions(false);
-      setError(null);
-      
+      console.error("Generate error:", error);
+      setError(error.response?.data?.error || "Failed to generate plan. Please try again.");
     } finally {
       setGenerating(false);
     }
   };
 
-  // Delete saved plan
-  const handleDeletePlan = async () => {
-    const token = localStorage.getItem("ingrido_token");
-    
-    if (!token) {
-      setWeeklyPlan([]);
-      setShowOptions(true);
-      setSelectedDiet(null);
-      return;
-    }
-    
-    if (!currentPlanId) return;
-    
-    const confirmDelete = window.confirm("Are you sure? This will delete your saved meal plan permanently.");
-    if (!confirmDelete) return;
-    
-    try {
-      await axios.delete(
-        `${BACKEND_URL}/api/accounts/meal-planner/delete/${currentPlanId}/`,
-        { headers: { Authorization: `Token ${token}` } }
-      );
-      
-      setWeeklyPlan([]);
-      setCurrentPlanId(null);
-      setPlanCreatedAt(null);
-      setShowOptions(true);
-      setSelectedDiet(null);
-      
-      alert("Meal plan deleted successfully!");
-      
-    } catch (error) {
-      console.error("Error deleting plan:", error);
-      alert("Failed to delete plan");
+  // Regenerate with current preferences
+  const handleRegenerate = () => {
+    if (selectedHealthCondition && selectedDietaryPref) {
+      generateMealPlan(selectedHealthCondition, selectedDietaryPref);
+    } else {
+      setError("Please select both health condition and dietary preference to regenerate");
     }
   };
 
-  // Regenerate plan (with same diet)
-  const handleRegenerate = async () => {
-    const token = localStorage.getItem("ingrido_token");
-    
-    if (token && currentPlanId) {
+  // Check for existing plan on component mount
+  useEffect(() => {
+    const checkSavedPlan = async () => {
+      const token = localStorage.getItem("ingrido_token");
+      
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        setGenerating(true);
-        const response = await axios.post(
-          `${BACKEND_URL}/api/accounts/meal-planner/regenerate/`,
-          {},
-          { headers: { Authorization: `Token ${token}` } }
-        );
-        
-        setWeeklyPlan(response.data.weekly_plan);
-        setCurrentPlanId(response.data.plan_id);
-        setPlanCreatedAt(response.data.created_at);
-        setIsExpired(false);
-        setDaysRemaining(7);
-        
+        setIsLoading(true);
+        const response = await axios.get(`${BACKEND_URL}/api/accounts/meal-planner/current/`, {
+          headers: { Authorization: `Token ${token}` }
+        });
+
+        console.log("API Response:", response.data);
+
+        if (response.data && response.data.weekly_plan && response.data.weekly_plan.length > 0) {
+          setWeeklyPlan(response.data.weekly_plan);
+          setCurrentPlanId(response.data.plan_id);
+          setPlanCreatedAt(response.data.created_at);
+          setIsExpired(false);
+          
+          // Restore selected preferences from the plan data
+          if (response.data.health_condition) {
+            setSelectedHealthCondition(response.data.health_condition);
+          }
+          if (response.data.dietary_preference) {
+            setSelectedDietaryPref(response.data.dietary_preference);
+          }
+          
+          // Calculate days remaining
+          if (response.data.created_at) {
+            const createdDate = new Date(response.data.created_at);
+            const now = new Date();
+            const daysDiff = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
+            const remaining = Math.max(0, 7 - daysDiff);
+            setDaysRemaining(remaining);
+            
+            if (remaining === 0) {
+              setIsExpired(true);
+            }
+          }
+        } else if (response.data && response.data.message === 'Plan expired after 7 days') {
+          setIsExpired(true);
+          setWeeklyPlan([]);
+          setCurrentPlanId(null);
+          localStorage.removeItem('current_meal_plan');
+        } else {
+          // Try localStorage backup
+          const savedPlan = localStorage.getItem('current_meal_plan');
+          if (savedPlan) {
+            const parsedPlan = JSON.parse(savedPlan);
+            const createdDate = new Date(parsedPlan.created_at);
+            const now = new Date();
+            const daysDiff = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
+            
+            if (daysDiff < 7) {
+              setWeeklyPlan(parsedPlan.weekly_plan);
+              setCurrentPlanId(parsedPlan.plan_id);
+              setSelectedHealthCondition(parsedPlan.health_condition);
+              setSelectedDietaryPref(parsedPlan.dietary_pref);
+              setDaysRemaining(7 - daysDiff);
+            } else {
+              localStorage.removeItem('current_meal_plan');
+            }
+          }
+        }
       } catch (error) {
-        console.error("Error regenerating plan:", error);
-        if (selectedDiet) {
-          await generateMealPlan(selectedDiet);
+        console.log("No existing active plan found:", error);
+        
+        // Try localStorage backup
+        const savedPlan = localStorage.getItem('current_meal_plan');
+        if (savedPlan) {
+          try {
+            const parsedPlan = JSON.parse(savedPlan);
+            const createdDate = new Date(parsedPlan.created_at);
+            const now = new Date();
+            const daysDiff = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
+            
+            if (daysDiff < 7) {
+              setWeeklyPlan(parsedPlan.weekly_plan);
+              setCurrentPlanId(parsedPlan.plan_id);
+              setSelectedHealthCondition(parsedPlan.health_condition);
+              setSelectedDietaryPref(parsedPlan.dietary_pref);
+              setDaysRemaining(7 - daysDiff);
+            }
+          } catch (e) {
+            console.error("Error parsing localStorage plan:", e);
+          }
         }
       } finally {
-        setGenerating(false);
-      }
-    } else if (selectedDiet) {
-      await generateMealPlan(selectedDiet);
-    } else {
-      setShowOptions(true);
-      setError("Please select a diet preference first");
-    }
-  };
-
-  // Handle diet selection
-  const handleDietSelect = (dietId) => {
-    setSelectedDiet(dietId);
-    generateMealPlan(dietId);
-  };
-
-  // Handle video view
-  const handleViewVideo = (videoUrl) => {
-    if (videoUrl) {
-      window.open(videoUrl, "_blank");
-    } else {
-      alert("Video tutorial coming soon!");
-    }
-  };
-
-  // Handle Pandamart order
-  const handleOrderPandamart = (mealTitle) => {
-    window.open(`https://pandamart.com/search?q=${encodeURIComponent(mealTitle)}`, "_blank");
-  };
-
-  // Reset and show options again
-  const handleNewPlan = () => {
-    setWeeklyPlan([]);
-    setSelectedDiet(null);
-    setShowOptions(true);
-    setError(null);
-    setCurrentPlanId(null);
-  };
-
-  // Mock data fallback
-  const getMock7DayMealPlan = (dietType) => {
-    const allMeals = {
-      lite: {
-        breakfast: [
-          { title: "Oatmeal with Berries", description: "Hearty oatmeal topped with fresh berries and honey", calories: 350, prep_time: 15 },
-          { title: "Greek Yogurt Parfait", description: "Yogurt with granola and mixed berries", calories: 320, prep_time: 10 },
-          { title: "Avocado Toast", description: "Whole grain toast with mashed avocado and seeds", calories: 380, prep_time: 12 },
-        ],
-        lunch: [
-          { title: "Grilled Chicken Salad", description: "Fresh greens with grilled chicken and light vinaigrette", calories: 450, prep_time: 20 },
-          { title: "Quinoa Bowl", description: "Quinoa with roasted vegetables and tahini", calories: 420, prep_time: 25 },
-          { title: "Lentil Soup", description: "Protein-rich lentil soup", calories: 350, prep_time: 35 },
-        ],
-        dinner: [
-          { title: "Steamed Fish with Vegetables", description: "Lightly seasoned fish with steamed broccoli", calories: 380, prep_time: 25 },
-          { title: "Grilled Tofu", description: "Marinated tofu with stir-fried vegetables", calories: 350, prep_time: 25 },
-          { title: "Chicken Breast with Quinoa", description: "Lean chicken breast with quinoa salad", calories: 420, prep_time: 30 },
-        ]
-      },
-      spicy: {
-        breakfast: [
-          { title: "Spicy Egg Bhurji", description: "Indian-style spiced scrambled eggs", calories: 420, prep_time: 20, spice_level: "Medium" },
-          { title: "Masala Omelette", description: "Spicy omelette with onions and chilies", calories: 380, prep_time: 15, spice_level: "Hot" },
-        ],
-        lunch: [
-          { title: "Chicken Karahi", description: "Wok-cooked chicken with tomatoes and green chilies", calories: 580, prep_time: 40, spice_level: "Hot" },
-          { title: "Biryani", description: "Fragrant spicy chicken biryani", calories: 650, prep_time: 45, spice_level: "Medium" },
-        ],
-        dinner: [
-          { title: "Spicy Grilled Fish", description: "Fish marinated in spicy masala", calories: 450, prep_time: 35, spice_level: "Medium" },
-          { title: "Peri-Peri Chicken", description: "Grilled chicken with peri-peri sauce", calories: 480, prep_time: 40, spice_level: "Hot" },
-        ]
-      },
-      balanced: {
-        breakfast: [
-          { title: "Whole Grain Toast with Eggs", description: "Perfect protein-rich breakfast", calories: 400, prep_time: 15 },
-          { title: "Pancakes with Honey", description: "Whole wheat pancakes with honey", calories: 420, prep_time: 20 },
-        ],
-        lunch: [
-          { title: "Daal Chawal", description: "Yellow lentils with rice", calories: 550, prep_time: 35 },
-          { title: "Chicken Stir Fry", description: "Chicken with mixed vegetables", calories: 520, prep_time: 25 },
-        ],
-        dinner: [
-          { title: "Grilled Chicken with Vegetables", description: "Balanced meal with protein and fiber", calories: 480, prep_time: 30 },
-          { title: "Fish with Rice", description: "Grilled fish served with brown rice", calories: 490, prep_time: 35 },
-        ]
+        setIsLoading(false);
       }
     };
 
-    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-    
-    if (dietType === 'without_preference') {
-      const allBreakfast = [...allMeals.lite.breakfast, ...allMeals.spicy.breakfast, ...allMeals.balanced.breakfast];
-      const allLunch = [...allMeals.lite.lunch, ...allMeals.spicy.lunch, ...allMeals.balanced.lunch];
-      const allDinner = [...allMeals.lite.dinner, ...allMeals.spicy.dinner, ...allMeals.balanced.dinner];
-      
-      return days.map(day => ({
-        day: day,
-        breakfast: allBreakfast[Math.floor(Math.random() * allBreakfast.length)],
-        lunch: allLunch[Math.floor(Math.random() * allLunch.length)],
-        dinner: allDinner[Math.floor(Math.random() * allDinner.length)],
-      }));
-    }
-
-    const meals = allMeals[dietType];
-    return days.map((day, i) => ({
-      day: day,
-      breakfast: meals.breakfast[i % meals.breakfast.length],
-      lunch: meals.lunch[i % meals.lunch.length],
-      dinner: meals.dinner[i % meals.dinner.length],
-    }));
-  };
-
-  // Initialize page
-  useEffect(() => {
-    const init = async () => {
-      await fetchUserHealthPreferences();
-      await checkSavedPlan();
-    };
-    init();
+    checkSavedPlan();
   }, []);
 
-  const hasHealthConditions = userHealthPrefs.health_conditions && userHealthPrefs.health_conditions.length > 0;
+  const handleHealthConditionSelect = (healthId) => {
+    setSelectedHealthCondition(healthId);
+    if (selectedDietaryPref) {
+      generateMealPlan(healthId, selectedDietaryPref);
+    }
+  };
+
+  const handleDietaryPrefSelect = (prefId) => {
+    setSelectedDietaryPref(prefId);
+    if (selectedHealthCondition) {
+      generateMealPlan(selectedHealthCondition, prefId);
+    }
+  };
+
+  const handleDeletePlan = async () => {
+    const token = localStorage.getItem("ingrido_token");
+    if (!token || !currentPlanId) return;
+    if (!window.confirm("Are you sure you want to delete this plan? This action cannot be undone.")) return;
+
+    try {
+      await axios.delete(`${BACKEND_URL}/api/accounts/meal-planner/delete/${currentPlanId}/`, {
+        headers: { Authorization: `Token ${token}` }
+      });
+      handleClearPlan();
+    } catch (error) { 
+      console.error("Delete error:", error);
+      setError("Failed to delete plan"); 
+    }
+  };
+
+  const handleClearPlan = () => {
+    setWeeklyPlan([]);
+    setSelectedHealthCondition(null);
+    setSelectedDietaryPref(null);
+    setCurrentPlanId(null);
+    setIsExpired(false);
+    setDaysRemaining(0);
+    localStorage.removeItem('current_meal_plan');
+  };
+
+  const handleViewVideo = (url) => {
+    if (url) {
+      window.open(url, "_blank");
+    } else {
+      alert("Video coming soon for this recipe!");
+    }
+  };
+  
+  const handleOrderPandamart = (title) => {
+    window.open(`https://www.foodpanda.pk/brand/pandamart?q=${encodeURIComponent(title)}`, "_blank");
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-[#b17b46] mx-auto mb-3" />
+          <p className="text-muted-foreground">Loading your meal plan...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <main className="mx-auto max-w-7xl px-6 py-10">
         {/* Breadcrumbs */}
         <div className="mb-6">
-          <Link
-            to="/"
-            className="text-sm text-muted-foreground hover:text-[#b17b46] transition"
-          >
-            Home
-          </Link>
+          <Link to="/" className="text-sm text-muted-foreground hover:text-[#b17b46]">Home</Link>
           <span className="mx-2 text-muted-foreground">/</span>
           <span className="text-sm text-foreground">Meal Planner</span>
         </div>
 
         {/* Header */}
-        <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
             <div className="flex items-center gap-3 mb-2">
               <div className="p-2 bg-[#b17b46]/10 rounded-lg">
                 <Calendar className="h-8 w-8 text-[#b17b46]" />
               </div>
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground">
-                Weekly Meal Plan
-              </h1>
+              <h1 className="text-3xl md:text-4xl font-bold text-foreground">Weekly Meal Plan</h1>
             </div>
-            <p className="text-muted-foreground">
-              {hasHealthConditions 
-                ? `🍃 Personalized for: ${userHealthPrefs.health_conditions.join(", ")}`
-                : "Your personalized 7-day meal schedule based on your preferences."}
-            </p>
-            {daysRemaining > 0 && !showOptions && (
+            <p className="text-muted-foreground">Select your preferences to generate a personalized 7-day meal plan.</p>
+            {daysRemaining > 0 && weeklyPlan.length > 0 && !isExpired && (
               <p className="text-xs text-green-600 mt-1">
-                ✓ Plan expires in {daysRemaining} days • Created: {planCreatedAt ? new Date(planCreatedAt).toLocaleDateString() : 'recently'}
+                ✓ Plan active for {daysRemaining} more {daysRemaining === 1 ? 'day' : 'days'}
               </p>
             )}
-            {isExpired && !showOptions && (
-              <p className="text-xs text-orange-600 mt-1">
-                ⚠️ Your plan has expired. Generating new one...
+            {isExpired && weeklyPlan.length > 0 && (
+              <p className="text-xs text-red-600 mt-1">
+                ⚠️ This plan has expired. Please generate a new plan.
               </p>
             )}
           </div>
 
-          {weeklyPlan.length > 0 && !showOptions && (
+          {/* Action Buttons */}
+          {weeklyPlan.length > 0 && !isExpired && (
             <div className="flex gap-3">
-              <button
-                onClick={handleRegenerate}
+              <button 
+                onClick={handleRegenerate} 
                 disabled={generating}
-                className="flex items-center gap-2 px-6 py-3 bg-[#b17b46] text-white font-semibold rounded-xl shadow-lg shadow-[#b17b46]/20 hover:bg-[#8B5E3C] transition-all active:scale-95 disabled:opacity-50"
+                className="flex items-center gap-2 px-6 py-3 bg-[#b17b46] text-white rounded-xl shadow-lg hover:bg-[#8B5E3C] transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <RefreshCw className={`h-4 w-4 ${generating ? "animate-spin" : ""}`} />
+                <RefreshCw className={generating ? "animate-spin" : ""} /> 
                 {generating ? "Generating..." : "Regenerate"}
               </button>
-              <button
-                onClick={handleDeletePlan}
-                className="flex items-center gap-2 px-6 py-3 bg-red-500 text-white font-semibold rounded-xl hover:bg-red-600 transition-all"
+              <button 
+                onClick={handleDeletePlan} 
+                className="flex items-center gap-2 px-6 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition"
               >
-                <Trash2 className="h-4 w-4" />
-                Delete
+                <Trash2 /> Delete
               </button>
             </div>
           )}
         </div>
 
+        {/* Error Message */}
         {error && (
-          <div className="mb-6 flex items-center gap-3 rounded-lg border border-red-500/50 bg-red-500/10 p-4 text-red-700">
-            <AlertCircle className="h-5 w-5" />
-            <p className="text-sm font-medium">{error}</p>
+          <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg flex items-center gap-2">
+            <AlertCircle /> {error}
+            <button onClick={() => setError(null)} className="ml-auto text-red-700 hover:text-red-900">×</button>
           </div>
         )}
 
-        {showOptions && (
+        {/* Options Section - Only show when no active plan or plan expired */}
+        {(weeklyPlan.length === 0 || isExpired) && (
           <div className="mb-10">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-foreground mb-2">
-                Choose Your Preference
-              </h2>
-              <p className="text-muted-foreground">
-                {hasHealthConditions 
-                  ? `Based on your health profile: ${userHealthPrefs.health_conditions.join(", ")}`
-                  : "Select how you want your meals to be prepared for the entire week"}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {dietOptions.map((option) => (
-                <DietOptionCard
-                  key={option.id}
-                  icon={option.icon}
-                  title={option.title}
-                  description={option.description}
-                  isSelected={selectedDiet === option.id}
-                  isRecommended={hasHealthConditions && option.id === 'lite'}
-                  onClick={() => handleDietSelect(option.id)}
-                />
-              ))}
-            </div>
-
-            {generating && (
-              <div className="text-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-[#b17b46] mx-auto mb-3" />
-                <p className="text-muted-foreground">
-                  Creating your 7-day personalized meal plan...
-                </p>
+            <h2 className="text-2xl font-bold text-center mb-8">Choose Your Preferences</h2>
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold text-center mb-4">Health Condition</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {healthOptions.map((option) => (
+                  <HealthConditionCard 
+                    key={option.id} 
+                    {...option} 
+                    isSelected={selectedHealthCondition === option.id} 
+                    onClick={() => handleHealthConditionSelect(option.id)} 
+                  />
+                ))}
               </div>
-            )}
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-center mb-4">Dietary Preference</h3>
+              <div className="flex justify-center gap-6 flex-wrap">
+                {dietaryOptions.map((option) => (
+                  <DietaryPreferenceCard 
+                    key={option.id} 
+                    {...option} 
+                    isSelected={selectedDietaryPref === option.id} 
+                    onClick={() => handleDietaryPrefSelect(option.id)} 
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
-        {weeklyPlan.length > 0 && !showOptions && !isExpired && (
-          <>
-            <div className="mb-8 rounded-lg border border-[#b17b46]/30 bg-[#b17b46]/5 p-4">
-              <div className="flex items-start gap-3">
-                <Info className="h-5 w-5 text-[#b17b46] mt-0.5" />
-                <div>
-                  <h3 className="font-semibold text-foreground">Chef's Tip!</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Not feeling these recipes? Click the <b>Regenerate</b> button to get a brand new 7-day meal plan.
-                  </p>
-                </div>
-              </div>
-            </div>
+        {/* Loading State */}
+        {generating && (
+          <div className="text-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-[#b17b46] mx-auto mb-3" />
+            <p className="text-muted-foreground">Creating your personalized 7-day plan...</p>
+          </div>
+        )}
 
-            <div className="mb-4 text-right text-sm text-muted-foreground">
-              Showing {weeklyPlan.length} days plan • {selectedDiet === 'without_preference' ? '🌿 No Health Preference' : 
-                selectedDiet === 'lite' ? '🥗 Lite & Healthy' :
-                selectedDiet === 'spicy' ? '🌶️ Spicy' : '⚖️ Balanced'} preference
+        {/* Plan Section */}
+        {weeklyPlan.length > 0 && !generating && !isExpired && (
+          <div id="meal-plan" className="space-y-6 mt-10">
+            <div className="flex items-center gap-2 mb-6">
+              <div className="h-1 w-12 bg-[#b17b46] rounded-full"></div>
+              <h2 className="text-2xl font-bold">Your Weekly Meal Plan</h2>
             </div>
-            <div id="meal-plan" className="space-y-6">
-              {weeklyPlan.map((day, index) => (
-                <DaySchedule
-                  key={index}
-                  dayData={day}
-                  onViewVideo={handleViewVideo}
-                  onOrderPandamart={handleOrderPandamart}
-                />
-              ))}
-            </div>
-
+            
+            {weeklyPlan.map((day, index) => (
+              <DaySchedule 
+                key={index} 
+                dayData={day} 
+                onViewVideo={handleViewVideo} 
+                onOrderPandamart={handleOrderPandamart}
+                onRecipeTitleClick={handleRecipeTitleClick}
+              />
+            ))}
+            
             <div className="mt-10 text-center">
-              <button
-                onClick={handleNewPlan}
-                className="px-6 py-2 border-2 border-[#b17b46] text-[#b17b46] rounded-lg hover:bg-[#b17b46] hover:text-white transition"
+              <button 
+                onClick={handleClearPlan} 
+                className="px-6 py-2 border-2 border-gray-400 text-gray-600 rounded-lg hover:bg-gray-100 transition"
               >
-                Create New Plan with Different Preference
+                Clear Plan & Start Over
               </button>
             </div>
-          </>
+          </div>
+        )}
+
+        {/* Expired Plan Message */}
+        {weeklyPlan.length > 0 && isExpired && !generating && (
+          <div className="text-center py-12 bg-yellow-50 rounded-xl border border-yellow-200">
+            <Calendar className="h-12 w-12 text-yellow-600 mx-auto mb-3" />
+            <p className="text-yellow-700 mb-4">Your previous meal plan has expired after 7 days.</p>
+            <button 
+              onClick={() => {
+                handleClearPlan();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="px-6 py-2 bg-[#b17b46] text-white rounded-lg hover:bg-[#8B5E3C] transition"
+            >
+              Create New Plan
+            </button>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {weeklyPlan.length === 0 && !generating && !isExpired && (
+          <div className="text-center py-12 bg-secondary/20 rounded-xl">
+            <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+            <p className="text-muted-foreground">Select health and diet options above to see your plan.</p>
+          </div>
         )}
       </main>
     </div>
