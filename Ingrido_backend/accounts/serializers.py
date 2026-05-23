@@ -1,7 +1,9 @@
-from rest_framework import serializers
-from django.contrib.auth.models import User
-from .models import City, Recipe, SavedRecipe, UserProfile, SavedMealPlan
+from datetime import datetime
 from urllib.parse import quote
+from django.contrib.auth.models import User
+from rest_framework import serializers
+from .models import City, Recipe, SavedRecipe, UserProfile, SavedMealPlan
+
 
 # ─────────────────────────────────────────────
 # 1. USER SERIALIZER
@@ -38,36 +40,25 @@ class CitySerializer(serializers.ModelSerializer):
 
 
 # ─────────────────────────────────────────────
-# 3. RECIPE LIST SERIALIZER (Used on dishes listing page)
+# 3. RECIPE LIST SERIALIZER
 # ─────────────────────────────────────────────
 class RecipeListSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
     is_saved = serializers.SerializerMethodField()
-    kcal = serializers.ReadOnlyField(source='calories') 
+    kcal = serializers.SerializerMethodField()
+    category = serializers.SerializerMethodField()
 
     class Meta:
         model = Recipe
-        fields = ['id', 'title', 'image', 'prep_time', 'kcal', 'dietary_type', 'is_saved']
+        fields = ['id', 'title', 'image', 'prep_time', 'kcal', 'category', 'is_saved']
 
     def get_image(self, obj):
         request = self.context.get('request')
-        
-        # 1. Priority: Manual Uploaded Image
         if obj.image:
             if request:
                 return request.build_absolute_uri(obj.image.url)
             return obj.image.url
-        
-        # 2. Priority: AI Generated Image path from DB (if exists)
-        if hasattr(obj, 'ai_generated_image') and obj.ai_generated_image:
-            if request:
-                return request.build_absolute_uri(obj.ai_generated_image.url)
-            return obj.ai_generated_image.url
-        
-        # 3. Fallback: Direct Pollinations AI URL
-        # Sirf title ko encode karein, poore link ko nahi
-        encoded_title = quote(f"Pakistani {obj.title} dish, high resolution food photography")
-        return f"https://image.pollinations.ai/prompt/{encoded_title}?width=800&height=500&nologo=true"
+        return None
 
     def get_is_saved(self, obj):
         request = self.context.get('request')
@@ -75,42 +66,97 @@ class RecipeListSerializer(serializers.ModelSerializer):
             return SavedRecipe.objects.filter(user=request.user, recipe=obj).exists()
         return False
 
+    def get_kcal(self, obj):
+        return getattr(obj, 'calories', getattr(obj, 'kcal', 350))
+
+    def get_category(self, obj):
+        return getattr(obj, 'category', 'Pakistani')
+
 
 # ─────────────────────────────────────────────
-# 4. RECIPE DETAIL SERIALIZER
+# 4. RECIPE DETAIL SERIALIZER (Single Recipe Page)
 # ─────────────────────────────────────────────
 class RecipeDetailSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
-    kcal = serializers.ReadOnlyField(source='calories')
+    is_saved = serializers.SerializerMethodField()
     city_name = serializers.ReadOnlyField(source='city.name')
+    kcal = serializers.SerializerMethodField()
+    category = serializers.SerializerMethodField()
 
     class Meta:
         model = Recipe
-        fields = '__all__'
+        fields = [
+            'id', 'title', 'category', 'image', 'youtube_video_id', 
+            'kcal', 'prep_time', 'protein', 'ingredients', 'instructions', 
+            'substitutions', 'city_name', 'is_saved', 'dietary_type'
+        ]
 
-    def get_image(self, recipe):
+    def get_image(self, obj):
         request = self.context.get('request')
-        if recipe.image:
-            if request:
-                return request.build_absolute_uri(recipe.image.url)
-            return recipe.image.url
         
-        # Detail page ke liye thora bara image size
-        encoded_title = quote(f"Pakistani {recipe.title} food photography, authentic style")
+        # Priority 1: Manually Uploaded Image
+        if obj.image:
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url  
+            
+        # Priority 2: AI Generated Image path from DB
+        if hasattr(obj, 'ai_generated_image') and obj.ai_generated_image:
+            if request:
+                return request.build_absolute_uri(obj.ai_generated_image.url)
+            return obj.ai_generated_image.url
+        
+        # Priority 3: Fallback direct Pollinations AI URL (Higher res for detail page)
+        encoded_title = quote(f"Pakistani {obj.title} food photography, authentic style")
         return f"https://image.pollinations.ai/prompt/{encoded_title}?width=1200&height=600&nologo=true"
 
+    def get_is_saved(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return SavedRecipe.objects.filter(user=request.user, recipe=obj).exists()
+        return False
+
+    def get_kcal(self, obj):
+        return getattr(obj, 'calories', getattr(obj, 'kcal', 350))
+
+    def get_category(self, obj):
+        return getattr(obj, 'category', 'Pakistani')
+
 
 # ─────────────────────────────────────────────
-# 5. SAVED RECIPE SERIALIZER
+# 5. SAVED RECIPE SERIALIZER (Bookmarks)
 # ─────────────────────────────────────────────
 class SavedRecipeSerializer(serializers.ModelSerializer):
-    # Important: source='recipe' ensures we use the related recipe object
     recipe_details = RecipeListSerializer(source='recipe', read_only=True)
+    id = serializers.ReadOnlyField(source='recipe.id')
+    title = serializers.ReadOnlyField(source='recipe.title')
+    prep_time = serializers.ReadOnlyField(source='recipe.prep_time')
+    kcal = serializers.SerializerMethodField()
+    category = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
+    is_saved = serializers.ReadOnlyField(default=True)
 
     class Meta:
         model = SavedRecipe
-        fields = ['id', 'user', 'recipe', 'recipe_details', 'saved_at']
+        fields = [
+            'id', 'user', 'recipe', 'title', 'image', 'prep_time', 
+            'kcal', 'category', 'saved_at', 'is_saved', 'recipe_details'
+        ]
         read_only_fields = ['id', 'user', 'saved_at']
+
+    def get_image(self, obj):
+        request = self.context.get('request')
+        if obj.recipe.image:
+            if request:
+                return request.build_absolute_uri(obj.recipe.image.url)
+            return obj.recipe.image.url
+        return None
+
+    def get_kcal(self, obj):
+        return getattr(obj.recipe, 'calories', getattr(obj.recipe, 'kcal', 350))
+
+    def get_category(self, obj):
+        return getattr(obj.recipe, 'category', 'Pakistani')
 
 
 # ─────────────────────────────────────────────
@@ -118,20 +164,36 @@ class SavedRecipeSerializer(serializers.ModelSerializer):
 # ─────────────────────────────────────────────
 class SavedMealPlanSerializer(serializers.ModelSerializer):
     user_name = serializers.SerializerMethodField()
+    plan_age_days = serializers.SerializerMethodField()
 
     class Meta:
         model = SavedMealPlan
         fields = [
-            'id',
-            'user',
-            'health_condition',
-            'dietary_preference',
-            'user_name',
-            'weekly_plan',
-            'is_active',
-            'created_at'
+            'id', 'user', 'user_name', 'health_condition', 'dietary_preference',
+            'diet_type', 'weekly_plan', 'is_active', 'created_at', 'updated_at', 'plan_age_days'
         ]
-        read_only_fields = ['id', 'user', 'created_at']
+        read_only_fields = ['id', 'user', 'created_at', 'updated_at', 'user_name', 'plan_age_days']
     
     def get_user_name(self, obj):
         return obj.user.username if obj.user else None
+    
+    def get_plan_age_days(self, obj):
+        if obj.created_at:
+            # Handles naive/aware timezone differences cleanly safely by comparing dates
+            return (datetime.now().date() - obj.created_at.date()).days
+        return 0
+
+
+# ─────────────────────────────────────────────
+# 7. SIMPLE MEAL PLAN SERIALIZER
+# ─────────────────────────────────────────────
+class MealPlanResponseSerializer(serializers.Serializer):
+    weekly_plan = serializers.ListField()
+    diet_type = serializers.CharField()
+    plan_id = serializers.IntegerField()
+    created_at = serializers.DateTimeField()
+    message = serializers.CharField(required=False)
+    used_preferences = serializers.DictField(required=False)
+    has_saved_plan = serializers.BooleanField(required=False)
+    is_expired = serializers.BooleanField(required=False)
+    days_remaining = serializers.IntegerField(required=False)

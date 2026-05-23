@@ -18,7 +18,7 @@ class UserProfile(models.Model):
 # ─────────────────────────────────────────────
 class City(models.Model):
     name = models.CharField(max_length=100, unique=True)
-    region = models.CharField(max_length=100)  # e.g. Punjab, Sindh
+    region = models.CharField(max_length=100)
     tagline = models.CharField(max_length=255, blank=True, null=True)
     latitude = models.DecimalField(max_digits=9, decimal_places=6)
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
@@ -56,13 +56,13 @@ class Recipe(models.Model):
     calories = models.IntegerField(default=0)
     image = models.ImageField(upload_to='recipe_images/', null=True, blank=True)
     
-    # New fields for recipes
+    # Recipe fields
     cuisine = models.CharField(max_length=100, default='Pakistani')
     dietary_type = models.CharField(max_length=20, choices=DIETARY_CHOICES, default='mixed')
     spice_level = models.CharField(max_length=20, choices=SPICE_CHOICES, default='Medium')
     estimated_protein = models.IntegerField(default=0, help_text="Protein in grams")
     
-    # city field
+    # City field
     city = models.ForeignKey(
         City, 
         on_delete=models.CASCADE, 
@@ -71,7 +71,6 @@ class Recipe(models.Model):
         blank=True
     )
     
-    # Categories
     is_vegetarian = models.BooleanField(default=False)
     is_sugar_free = models.BooleanField(default=False)
     is_low_fat = models.BooleanField(default=False)
@@ -141,3 +140,69 @@ class SavedMealPlan(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+
+# ─────────────────────────────────────────────
+# 6. AI GENERATED RECIPE (For Caching)
+# ─────────────────────────────────────────────
+class AIGeneratedRecipe(models.Model):
+    """Store AI-generated recipes so instructions don't change"""
+    title = models.CharField(max_length=255, unique=True)
+    description = models.TextField()
+    ingredients = models.TextField()
+    instructions = models.TextField()
+    prep_time = models.IntegerField(default=30)
+    kcal = models.IntegerField(default=350)
+    cuisine = models.CharField(max_length=100, default="Pakistani")
+    dietary_type = models.CharField(max_length=50, blank=True, default="mixed")
+    spice_level = models.CharField(max_length=20, blank=True, default="Medium")
+    youtube_video_id = models.CharField(max_length=50, blank=True)
+    image_url = models.URLField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    view_count = models.IntegerField(default=0)
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['title']),
+            models.Index(fields=['-view_count']),
+        ]
+    
+    def __str__(self):
+        return self.title
+
+
+# ─────────────────────────────────────────────
+# 7. USER SEARCH HISTORY 
+# ─────────────────────────────────────────────
+class UserSearchHistory(models.Model):
+    """Store user's search history - persists across logins"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='search_history')
+    query = models.CharField(max_length=200)
+    searched_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-searched_at']
+        unique_together = ('user', 'query')
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.query}"
+
+
+# ─────────────────────────────────────────────
+# 8. USER VIEWED RECIPES 
+# ─────────────────────────────────────────────
+class UserViewedRecipe(models.Model):
+    """Store user's viewed recipe history - persists across logins"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='viewed_recipes')
+    recipe_id = models.CharField(max_length=100)
+    recipe_title = models.CharField(max_length=255)
+    recipe_data = models.JSONField(default=dict)
+    viewed_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-viewed_at']
+        unique_together = ('user', 'recipe_id')
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.recipe_title}"
