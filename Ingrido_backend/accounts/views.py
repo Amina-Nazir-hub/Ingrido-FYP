@@ -30,9 +30,9 @@ from .serializers import (
 
 load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY") or "AIzaSyByBTRLlawcXiiIznJh8rprwrSymEmv8Gc"
+# Security Note: API Key ko hamesha .env mein rakhen, code mein hardcode na karen
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
 groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
-GROCERY_STORE_URL = "https://www.foodpanda.pk/brand/pandamart"
 
 # --- HELPERS ---
 def fetch_youtube_video_id(recipe_title):
@@ -63,7 +63,8 @@ def register_user(request):
     if serializer.is_valid():
         user = serializer.save()
         token, _ = Token.objects.get_or_create(user=user)
-        return Response({'token': token.key, 'user_id': user.id}, status=status.HTTP_201_CREATED)
+        # Consistent response: matching login_user structure
+        return Response({'token': token.key, 'user_id': user.id, 'first_name': user.first_name}, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
@@ -74,7 +75,7 @@ def login_user(request):
     user = authenticate(username=email, password=password)
     if user:
         token, _ = Token.objects.get_or_create(user=user)
-        return Response({'token': token.key, 'user_id': user.id}, status=200)
+        return Response({'token': token.key, 'user_id': user.id, 'first_name': user.first_name}, status=200)
     return Response({'error': 'Invalid Credentials'}, status=401)
 
 @api_view(['GET'])
@@ -88,70 +89,89 @@ def user_profile(request):
 
 # --- CITY & RECIPE VIEWS ---
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def city_list(request):
     cities = City.objects.all()
     serializer = CitySerializer(cities, many=True)
     return Response(serializer.data)
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def GetRecipesByCity(request):
+    """
+    Handle city-based filtering with proper serializer context for images.
+    """
+    city_name = request.query_params.get('city')
     city_id = request.query_params.get('city_id')
-    if city_id:
+
+    if city_name:
+        recipes = Recipe.objects.filter(city__name__iexact=city_name)
+    elif city_id:
         recipes = Recipe.objects.filter(city_id=city_id)
     else:
         recipes = Recipe.objects.all()
-    serializer = RecipeListSerializer(recipes, many=True)
-    return Response(serializer.data)
+
+    # context={'request': request} is CRITICAL for absolute image URLs
+    serializer = RecipeListSerializer(recipes, many=True, context={'request': request})
+    
+    city_info = None
+    if city_name:
+        city_obj = City.objects.filter(name__iexact=city_name).first()
+        if city_obj:
+            city_info = CitySerializer(city_obj).data
+
+    return Response({
+        'recipes': serializer.data,
+        'city': city_info
+    })
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def get_dashboard_recipes(request):
+    # Random recipes for discovery
     recipes = Recipe.objects.all().order_by('?')[:12]
-    serializer = RecipeListSerializer(recipes, many=True)
+    serializer = RecipeListSerializer(recipes, many=True, context={'request': request})
     return Response(serializer.data)
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def recipe_detail(request, pk):
     recipe = get_object_or_404(Recipe, pk=pk)
-    serializer = RecipeDetailSerializer(recipe)
-    video_id = fetch_youtube_video_id(recipe.title)
+    serializer = RecipeDetailSerializer(recipe, context={'request': request})
+
     data = serializer.data
-    data['youtube_video_id'] = video_id
-    data['grocery_url'] = GROCERY_STORE_URL
+    data['youtube_video_id'] = fetch_youtube_video_id(recipe.title)
+
+    if request.user.is_authenticated:
+        data['is_saved'] = SavedRecipe.objects.filter(
+            user=request.user,
+            recipe=recipe
+        ).exists()
+    else:
+        data['is_saved'] = False
+
     return Response(data)
 
 # --- AI SUBSTITUTE VIEW ---
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def get_ai_substitute(request, pk=None):
-    """
-    Get AI substitute for an ingredient.
-    Supports:
-    - Database recipes by ID (pk)
-    - AI-generated recipes by title (recipe_title in request body)
-    """
     recipe_title = request.data.get('recipe_title')
     ingredient_to_replace = request.data.get('ingredient')
     
-    # Validate ingredient
     if not ingredient_to_replace:
         return Response({'error': 'Ingredient name required'}, status=400)
     
-    # Get recipe title from either pk or request body
     if pk and str(pk).isdigit():
-        # Database recipe by ID
         recipe = get_object_or_404(Recipe, pk=pk)
         recipe_title = recipe.title
-    elif recipe_title:
-        # AI-generated recipe by title
-        recipe_title = recipe_title
-    else:
-        return Response({'error': 'Recipe identifier required (either pk or recipe_title)'}, status=400)
+    elif not recipe_title:
+        return Response({'error': 'Recipe identifier required'}, status=400)
     
-    # Check Groq client
     if not groq_client:
-        return Response({'error': 'Groq Client not configured'}, status=500)
+        return Response({'error': 'Groq Client not configured'}, status=503)
     
-    # Generate substitute suggestion
-    prompt = f"In the recipe '{recipe_title}', what is a good Pakistani substitute for '{ingredient_to_replace}'? Keep response brief and helpful (max 2 sentences)."
+    prompt = f"In the recipe '{recipe_title}', what is a good Pakistani substitute for '{ingredient_to_replace}'? Keep response brief, authentic to Pakistani cooking, and helpful."
     
     try:
         chat_completion = groq_client.chat.completions.create(
@@ -169,116 +189,130 @@ def get_ai_substitute(request, pk=None):
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_ai_recipe_detail(request, recipe_title):
-    """
-    Get details for an AI-generated recipe by title
-    """
-    # Decode URL-encoded title and format it properly
     recipe_title = unquote(recipe_title).replace('-', ' ').title()
-    
-    # Validate title isn't empty
+
     if not recipe_title or len(recipe_title.strip()) < 2:
         return Response({'error': 'Invalid recipe title'}, status=400)
-    
+
     if not groq_client:
-        return Response({'error': 'AI service not configured'}, status=500)
-    
+        return Response({'error': 'AI service not configured'}, status=503)
+
     prompt = f"""
     Generate a detailed Pakistani recipe for "{recipe_title}".
-    
     Return ONLY valid JSON with this exact structure:
     {{
         "title": "{recipe_title}",
-        "description": "Brief description of the dish (1-2 sentences)",
-        "ingredients": "List of ingredients, each on a new line",
-        "instructions": "Step by step cooking instructions, each step on a new line",
-        "prep_time": "Time in minutes as number only",
-        "kcal": "Calories per serving as number only",
+        "description": "Brief description",
+        "ingredients": "Each ingredient on a new line",
+        "instructions": "Each step on a new line",
+        "prep_time": "30",
+        "kcal": "450",
         "cuisine": "Pakistani",
-        "dietary_type": "veg or non_veg or mixed",
+        "dietary_type": "veg or non_veg",
         "spice_level": "Mild/Medium/Hot"
     }}
-    
-    Make it authentic and detailed.
     """
-    
+
     try:
         completion = groq_client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[
-                {"role": "system", "content": "You are a professional Pakistani chef. Respond ONLY with valid JSON, no other text."},
-                {"role": "user", "content": prompt}
+                {"role": "system", "content": "You are a professional Pakistani chef. Respond ONLY with valid JSON."},
+                {"role": "user", "content": prompt},
             ],
-            temperature=0.7
+            temperature=0.7,
+            response_format={ "type": "json_object" }
         )
-        
+
         response_text = completion.choices[0].message.content.strip()
+        recipe_data = json.loads(response_text)
         
-        # Extract JSON
-        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-        if not json_match:
-            return Response({'error': 'Failed to generate recipe'}, status=500)
-        
-        recipe_data = json.loads(json_match.group())
-        
-        # Get YouTube video ID
-        video_id = fetch_youtube_video_id(recipe_title)
-        recipe_data['youtube_video_id'] = video_id
-        recipe_data['grocery_url'] = GROCERY_STORE_URL
+        recipe_data['youtube_video_id'] = fetch_youtube_video_id(recipe_title)
         recipe_data['is_ai_generated'] = True
-        
+        recipe_data['is_saved'] = False
+
+        if request.user.is_authenticated:
+            existing_recipe = Recipe.objects.filter(title__iexact=recipe_title).first()
+            if existing_recipe:
+                recipe_data['is_saved'] = SavedRecipe.objects.filter(
+                    user=request.user,
+                    recipe=existing_recipe
+                ).exists()
+
         return Response(recipe_data)
-        
+
     except Exception as e:
-        return Response({'error': str(e)}, status=500)
+        return Response({'error': f"AI Recipe Error: {str(e)}"}, status=500)
 
 # --- BOOKMARK VIEWS ---
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def toggle_bookmark(request, recipe_id):
-    recipe = get_object_or_404(Recipe, id=recipe_id)
+def toggle_bookmark(request, recipe_id=None):
+    recipe_data = request.data.get('recipe_data')
+    
+    if recipe_id and str(recipe_id).isdigit():
+        recipe = get_object_or_404(Recipe, id=recipe_id)
+    elif recipe_data:
+        recipe_title = recipe_data.get('title')
+        existing_recipe = Recipe.objects.filter(title__iexact=recipe_title).first()
+        if existing_recipe:
+            recipe = existing_recipe
+        else:
+            try:
+                recipe = Recipe.objects.create(
+                    title=recipe_data.get('title', 'Untitled Recipe'),
+                    description=recipe_data.get('description', ''),
+                    ingredients=recipe_data.get('ingredients', ''),
+                    instructions=recipe_data.get('instructions', ''),
+                    prep_time=int(recipe_data.get('prep_time', 30)),
+                    calories=int(recipe_data.get('kcal', 0)),
+                    cuisine=recipe_data.get('cuisine', 'Pakistani'),
+                    dietary_type=recipe_data.get('dietary_type', 'mixed'),
+                    spice_level=recipe_data.get('spice_level', 'Medium')
+                )
+            except Exception as e:
+                return Response({'error': f'Error creating recipe: {str(e)}'}, status=500)
+    else:
+        return Response({'error': 'No recipe identifier provided'}, status=400)
+    
     bookmark, created = SavedRecipe.objects.get_or_create(user=request.user, recipe=recipe)
     if not created:
         bookmark.delete()
-        return Response({'status': 'removed'})
-    return Response({'status': 'saved'})
+        return Response({'saved': False, 'status': 'removed'})
+    
+    return Response({'saved': True, 'status': 'saved'}, status=status.HTTP_201_CREATED)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def saved_recipes(request):
-    bookmarks = SavedRecipe.objects.filter(user=request.user)
-    serializer = SavedRecipeSerializer(bookmarks, many=True)
-    return Response(serializer.data)
-
-@api_view(['GET'])
-def health_check(request):
-    return Response({"status": "healthy"}, status=200)
+    bookmarks = SavedRecipe.objects.filter(user=request.user).select_related('recipe')
+    data = []
+    for b in bookmarks:
+        recipe_data = RecipeListSerializer(b.recipe, context={'request': request}).data
+        recipe_data['bookmark_id'] = b.id
+        recipe_data['saved_at'] = b.saved_at
+        data.append(recipe_data)
+    return Response(data)
 
 # --- MEAL PLANNER VIEWS ---
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def generate_and_save_meal_plan(request):
+    if not groq_client:
+        return Response({'error': 'AI Service not configured'}, status=503)
+
     try:
         selected_health = request.data.get('health_condition', 'balanced')
         selected_diet = request.data.get('dietary_preference', 'both')
-
-        dessert_instruction = ""
-        if selected_health != 'diabetes':
-            dessert_instruction = "Include a traditional Pakistani dessert (e.g., Kheer, Sooji Halwa) 2-3 times a week."
-        else:
-            dessert_instruction = "Strictly NO sugar or desserts."
+        
+        dessert_instruction = "Strictly NO sugar." if selected_health == 'diabetes' else "Include traditional dessert 2-3 times a week."
 
         prompt = f"""
-        Create a 7-day Pakistani meal plan JSON for a {selected_health} patient who prefers {selected_diet} food.
-        GUIDELINES:
-        1. Authentic Pakistani dishes only.
-        2. Include snacks (Pakoras, Chaat), Pasta, or Sandwiches for lunch/dinner side.
-        3. DESSERTS: {dessert_instruction}
-        4. STRUCTURE: Respond ONLY with a valid JSON. Use keys: "weekly_plan", "day", "breakfast", "lunch", "dinner", "title", "description", "calories", "prep_time".
+        Create a 7-day Pakistani meal plan for a person with {selected_health} health condition and {selected_diet} dietary preference.
+        {dessert_instruction}
+        Return ONLY valid JSON with a 'weekly_plan' key containing an array of 7 day objects.
+        Each object: {{"day": "Day Name", "breakfast": "...", "lunch": "...", "dinner": "...", "calories": "..."}}
         """
-
-        if not groq_client:
-            return Response({'error': 'Groq client not initialized'}, status=500)
 
         completion = groq_client.chat.completions.create(
             model="llama-3.1-8b-instant",
@@ -286,74 +320,55 @@ def generate_and_save_meal_plan(request):
                 {"role": "system", "content": "You are a professional Pakistani nutritionist. Respond ONLY in JSON."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.4
+            temperature=0.4,
+            response_format={ "type": "json_object" }
         )
 
         response_text = completion.choices[0].message.content.strip()
-        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-        
-        if not json_match:
-            return Response({'error': 'AI failed to generate valid JSON'}, status=500)
-            
-        data = json.loads(json_match.group())
+        data = json.loads(response_text)
         weekly_plan = data.get('weekly_plan', [])
 
+        # Deactivate previous active plans
         SavedMealPlan.objects.filter(user=request.user, is_active=True).update(is_active=False)
-
+        
         saved_plan = SavedMealPlan.objects.create(
-            user=request.user,
+            user=request.user, 
             weekly_plan=weekly_plan,
-            health_condition=selected_health,
-            dietary_preference=selected_diet,
+            health_condition=selected_health, 
+            dietary_preference=selected_diet, 
             is_active=True
         )
 
-        return Response({
-            'weekly_plan': weekly_plan,
-            'plan_id': saved_plan.id
-        }, status=status.HTTP_201_CREATED)
-
+        return Response({'weekly_plan': weekly_plan, 'plan_id': saved_plan.id}, status=201)
     except Exception as e:
-        return Response({'error': str(e)}, status=500)
+        return Response({'error': f'Meal plan generation failed: {str(e)}'}, status=500)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_current_meal_plan(request):
-    try:
-        plan = SavedMealPlan.objects.filter(user=request.user, is_active=True).order_by('-created_at').first()
-        if plan:
-            if timezone.now() > plan.created_at + timedelta(days=7):
-                plan.is_active = False
-                plan.save()
-                return Response({'message': 'Plan expired after 7 days'}, status=404)
-            
-            return Response({
-                'weekly_plan': plan.weekly_plan,
-                'plan_id': plan.id,
-                'created_at': plan.created_at,
-                'health_condition': plan.health_condition,
-                'dietary_preference': plan.dietary_preference
-            })
-        return Response({'message': 'No active plan found'}, status=404)
-    except Exception as e:
-        return Response({'error': str(e)}, status=500)
+    plan = SavedMealPlan.objects.filter(user=request.user, is_active=True).order_by('-created_at').first()
+    if plan:
+        # Auto-expire plans older than 7 days
+        if timezone.now() > plan.created_at + timedelta(days=7):
+            plan.is_active = False
+            plan.save()
+            return Response({'message': 'Expired'}, status=404)
+        return Response({'weekly_plan': plan.weekly_plan, 'plan_id': plan.id})
+    return Response({'message': 'No active plan'}, status=404)
 
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def delete_meal_plan(request, plan_id):
-    try:
-        plan = SavedMealPlan.objects.get(id=plan_id, user=request.user)
-        plan.delete()
-        return Response({'message': 'Meal plan deleted'}, status=200)
-    except SavedMealPlan.DoesNotExist:
-        return Response({'error': 'Plan not found'}, status=404)
+    plan = get_object_or_404(SavedMealPlan, id=plan_id, user=request.user)
+    plan.delete()
+    return Response({'message': 'Deleted'})
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_user_health_preferences(request):
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
     return Response({
-        'health_conditions': profile.health_conditions,
+        'health_conditions': profile.health_conditions, 
         'dietary_preferences': profile.dietary_preferences
     })
 
@@ -361,3 +376,7 @@ def get_user_health_preferences(request):
 @permission_classes([IsAuthenticated])
 def regenerate_meal_plan(request):
     return generate_and_save_meal_plan(request)
+
+@api_view(['GET'])
+def health_check(request):
+    return Response({"status": "healthy"}, status=200)

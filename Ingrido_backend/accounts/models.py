@@ -36,8 +36,19 @@ class City(models.Model):
 # 3. RECIPE MODEL
 # ─────────────────────────────────────────────
 class Recipe(models.Model):
+    DIETARY_CHOICES = [
+        ('veg', 'Vegetarian'),
+        ('non_veg', 'Non-Vegetarian'),
+        ('mixed', 'Mixed'),
+    ]
+    
+    SPICE_CHOICES = [
+        ('Mild', 'Mild'),
+        ('Medium', 'Medium'),
+        ('Hot', 'Hot'),
+    ]
+    
     title = models.CharField(max_length=200)
-    # Added default to prevent migration errors
     description = models.TextField(default="No description provided")
     ingredients = models.TextField(default="No ingredients listed") 
     instructions = models.TextField(default="No instructions provided")
@@ -45,7 +56,13 @@ class Recipe(models.Model):
     calories = models.IntegerField(default=0)
     image = models.ImageField(upload_to='recipe_images/', null=True, blank=True)
     
-    # city field updated: null=True, blank=True allows migration without a default value
+    # New fields for recipes
+    cuisine = models.CharField(max_length=100, default='Pakistani')
+    dietary_type = models.CharField(max_length=20, choices=DIETARY_CHOICES, default='mixed')
+    spice_level = models.CharField(max_length=20, choices=SPICE_CHOICES, default='Medium')
+    estimated_protein = models.IntegerField(default=0, help_text="Protein in grams")
+    
+    # city field
     city = models.ForeignKey(
         City, 
         on_delete=models.CASCADE, 
@@ -58,6 +75,10 @@ class Recipe(models.Model):
     is_vegetarian = models.BooleanField(default=False)
     is_sugar_free = models.BooleanField(default=False)
     is_low_fat = models.BooleanField(default=False)
+
+    @property
+    def kcal(self):
+        return self.calories
 
     def __str__(self):
         return self.title
