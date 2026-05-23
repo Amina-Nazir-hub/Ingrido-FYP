@@ -1,8 +1,8 @@
 import { AuthProvider } from "./context/AuthContext";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Navbar } from "./components/NavBar";
-import LoginPage from "./pages/LoginPage";        // ✅ Default import (no curly braces)
-import RegisterPage from "./pages/RegisterPage";  // ✅ Default import (no curly braces)
+import LoginPage from "./pages/LoginPage";       
+import RegisterPage from "./pages/RegisterPage";  
 import { LandingPage } from "./pages/LandingPage";
 import { DashboardPage as Dashboard } from "./pages/DashboardPage";
 import SearchResultsPage from "./pages/SearchResultsPage";
@@ -32,7 +32,9 @@ function App() {
             <Route path="city/:cityName/dishesList" element={<DishesListPage />} />
             <Route path="/saved" element={<SavedPage />} />
             <Route path="/profile" element={<UserProfileSettings />} />
-            <Route path="/recipe/:id?" element={<RecipieDetail />} />
+            {/* Sahi dynamic parameter matching bina backslash ke */}
+            // App.jsx ke andar Routes mein yeh path lazmi check karein:
+<Route path="/recipe/ai/:id" element={<RecipieDetail />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
