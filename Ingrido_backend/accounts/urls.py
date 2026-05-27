@@ -27,6 +27,7 @@ from .views import (
     get_viewed_recipes,
     add_viewed_recipe,
     clear_viewed_recipes,
+    delete_account,  
 )
 
 urlpatterns = [
@@ -36,7 +37,7 @@ urlpatterns = [
     path('register/', register_user, name='register'),
     path('login/', login_user, name='login'),
     path('profile/', user_profile, name='user_profile'),
-
+    path('delete-account/', delete_account, name='delete_account'),
     # ==========================================
     # CITY & RECIPE LIST URLs
     # ==========================================

@@ -917,3 +917,25 @@ def clear_viewed_recipes(request):
 @permission_classes([AllowAny])
 def health_check(request):
     return Response({'status': 'ok', 'timestamp': timezone.now()})
+
+# ========== DELETE ACCOUNT VIEW ==========
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_account(request):
+    """
+    Permanently delete the authenticated user's account
+    """
+    try:
+        user = request.user
+        # Delete user from database - this will cascade delete all related data
+        user.delete()
+        return Response(
+            {"message": "Account permanently deleted"}, 
+            status=status.HTTP_204_NO_CONTENT
+        )
+    except Exception as e:
+        return Response(
+            {"error": f"Failed to delete account: {str(e)}"}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
