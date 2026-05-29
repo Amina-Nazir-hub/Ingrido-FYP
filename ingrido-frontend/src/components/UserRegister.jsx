@@ -1,8 +1,6 @@
 import { useState } from "react";
 import {
   User,
-  Heart,
-  Salad,
   ArrowRight,
   Mail,
   Lock,
@@ -10,11 +8,11 @@ import {
   XCircle,
 } from "lucide-react";
 import { useRegisterForm } from "../hooks/UserRegisterForm";
-import { HEALTH_OPTIONS, DIET_OPTIONS } from "../utils/RegistrationOption";
+
 export function UserRegister() {
-  const { formData, handleChange, handleCheckboxChange, handleSubmit } =
-    useRegisterForm();
+  const { formData, handleChange, handleSubmit } = useRegisterForm();
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
+  
   // Password Validations
   const validations = [
     { label: "Minimum 8 characters", met: formData.password.length >= 8 },
@@ -26,7 +24,9 @@ export function UserRegister() {
       met: /[!@#$%^&*(),.?":{}|<>+=-]/.test(formData.password),
     },
   ];
+  
   const isPasswordValid = validations.every((v) => v.met);
+  
   const handleOnSubmit = async (e) => {
     await handleSubmit(e);
     if (formData.name) {
@@ -34,6 +34,7 @@ export function UserRegister() {
       window.dispatchEvent(new Event("storage_updated"));
     }
   };
+  
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12 pt-28 bg-background font-sans">
       <div className="w-full max-w-2xl animate-fade-up">
@@ -76,6 +77,7 @@ export function UserRegister() {
                   required
                 />
               </div>
+              
               <div className="space-y-2 relative">
                 <label className="text-sm font-semibold flex items-center gap-2 text-foreground">
                   <Lock className="h-4 w-4 text-secondary" /> Password
@@ -116,57 +118,7 @@ export function UserRegister() {
                 )}
               </div>
             </div>
-            <hr className="border-border my-10" />
-            <div className="space-y-4 text-left">
-              <label className="text-sm font-semibold flex items-center gap-2 text-foreground">
-                <Heart className="h-4 w-4 text-secondary" /> Health Profile
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {HEALTH_OPTIONS.map((option) => (
-                  <label
-                    key={option}
-                    className="flex items-center space-x-3 bg-background/30 p-3 rounded-md border border-border hover:bg-muted/50 cursor-pointer transition-all"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={formData.healthConditions.includes(option)}
-                      onChange={() =>
-                        handleCheckboxChange("healthConditions", option)
-                      }
-                      className="h-4 w-4 rounded border-input text-primary"
-                    />
-                    <span className="text-sm font-medium text-foreground/80">
-                      {option}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-4 text-left">
-              <label className="text-sm font-semibold flex items-center gap-2 text-foreground">
-                <Salad className="h-4 w-4 text-secondary" /> Dietary Preferences
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {DIET_OPTIONS.map((option) => (
-                  <label
-                    key={option}
-                    className="flex items-center space-x-3 bg-background/30 p-3 rounded-md border border-border hover:bg-muted/50 cursor-pointer transition-all"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={formData.dietaryPreferences.includes(option)}
-                      onChange={() =>
-                        handleCheckboxChange("dietaryPreferences", option)
-                      }
-                      className="h-4 w-4 rounded border-input text-primary"
-                    />
-                    <span className="text-sm font-medium text-foreground/80">
-                      {option}
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
+            
             <button
               type="submit"
               disabled={!isPasswordValid}

@@ -1,29 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import Select from "react-select";
-import { User, Heart, Salad, Save, Mail, ChevronLeft, Trash2, AlertTriangle } from "lucide-react";
-import { useAuth } from "../context/AuthContext";  // <-- ADD THIS IMPORT
-
-const ALL_HEALTH = [
-  { value: "Diabetes", label: "Diabetes" },
-  { value: "High Blood Pressure", label: "High Blood Pressure" },
-  { value: "Heart Disease", label: "Heart Disease" },
-];
-
-const ALL_DIET = [
-  { value: "Vegetarian", label: "Vegetarian" },
-  { value: "Non-Vegetarian", label: "Non-Vegetarian" },
-];
+import { User, Save, Mail, ChevronLeft, Trash2, AlertTriangle, LogOut } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 export function UserProfileSettings() {
   const navigate = useNavigate();
-  const { logout } = useAuth();  // <-- ADD THIS - get logout function from context
+  const { logout } = useAuth();
   const [profile, setProfile] = useState({
     first_name: "",
     email: "",
-    health_conditions: [],
-    dietary_preferences: [],
   });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -36,12 +22,9 @@ export function UserProfileSettings() {
         headers: { Authorization: `Token ${token}` },
       })
       .then((res) => {
-        const health = res.data.health_conditions?.map((h) => ({ value: h, label: h })) || [];
-        const diet = res.data.dietary_preferences?.map((d) => ({ value: d, label: d })) || [];
         setProfile({
-          ...res.data,
-          health_conditions: health,
-          dietary_preferences: diet,
+          first_name: res.data.first_name || "",
+          email: res.data.email || "",
         });
         if (res.data.first_name) {
           localStorage.setItem("user_name", res.data.first_name);
@@ -55,8 +38,8 @@ export function UserProfileSettings() {
     try {
       const dataToSend = {
         first_name: profile.first_name,
-        health_conditions: profile.health_conditions.map((o) => o.value),
-        dietary_preferences: profile.dietary_preferences.map((o) => o.value),
+        health_conditions: [],
+        dietary_preferences: [],
       };
 
       await axios.put("http://127.0.0.1:8000/api/accounts/profile/", dataToSend, {
@@ -72,7 +55,6 @@ export function UserProfileSettings() {
     }
   };
 
-  // Account Delete Function - UPDATED with logout
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
     try {
@@ -90,6 +72,14 @@ export function UserProfileSettings() {
       setIsDeleting(false);
       setShowDeleteConfirm(false);
     }
+  };
+
+  // Logout function
+  const handleLogout = () => {
+    logout();
+    localStorage.clear();
+    window.dispatchEvent(new Event("storage_updated"));
+    navigate("/");
   };
 
   const nameForInitial = profile.first_name || "User";
@@ -137,35 +127,19 @@ export function UserProfileSettings() {
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-semibold flex items-center gap-2">
-                <Heart className="w-4 h-4 text-red-500" /> Health Conditions
-              </label>
-              <Select
-                isMulti
-                options={ALL_HEALTH}
-                value={profile.health_conditions}
-                onChange={(s) => setProfile({ ...profile, health_conditions: s || [] })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-semibold flex items-center gap-2">
-                <Salad className="w-4 h-4 text-green-500" /> Dietary Preferences
-              </label>
-              <Select
-                isMulti
-                options={ALL_DIET}
-                value={profile.dietary_preferences}
-                onChange={(s) => setProfile({ ...profile, dietary_preferences: s || [] })}
-              />
-            </div>
-
             <button
               onClick={handleSave}
               className="w-full bg-primary text-white py-4 rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg mt-4 flex items-center justify-center gap-2"
             >
               <Save className="w-5 h-5" /> Save Changes
+            </button>
+
+            {/* Logout Button*/}
+            <button
+              onClick={handleLogout}
+              className="w-full bg-orange-50 text-orange-600 py-4 rounded-2xl font-bold hover:bg-orange-100 transition-all flex items-center justify-center gap-2 border border-orange-200"
+            >
+              <LogOut className="w-5 h-5" /> Sign Out
             </button>
 
             {/* Delete Account Section */}
@@ -183,8 +157,6 @@ export function UserProfileSettings() {
           </div>
         </div>
       </div>
-
-      {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-card rounded-2xl max-w-md w-full p-6 shadow-2xl border border-border">

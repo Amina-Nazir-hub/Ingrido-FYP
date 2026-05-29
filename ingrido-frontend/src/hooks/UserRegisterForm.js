@@ -20,16 +20,6 @@ export function useRegisterForm() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleCheckboxChange = (category, option) => {
-    setFormData((prev) => {
-      const currentOptions = prev[category];
-      const updatedOptions = currentOptions.includes(option)
-        ? currentOptions.filter((item) => item !== option)
-        : [...currentOptions, option];
-      return { ...prev, [category]: updatedOptions };
-    });
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -52,8 +42,8 @@ export function useRegisterForm() {
         first_name: formData.name,
         email: formData.email,
         password: formData.password,
-        health_conditions: formData.healthConditions,
-        dietary_preferences: formData.dietaryPreferences
+        health_conditions: [],
+        dietary_preferences: []
       });
 
       // Storage aur Context update
@@ -69,5 +59,5 @@ export function useRegisterForm() {
     }
   };
 
-  return { formData, handleChange, handleCheckboxChange, handleSubmit };
+  return { formData, handleChange, handleSubmit };
 }
