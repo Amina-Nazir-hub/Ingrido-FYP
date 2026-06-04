@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
-# Structure: Ingrido_backend/core/settings.py
-# .parent(core) -> .parent(Ingrido_backend) -> .parent(Ingrido-FYP)
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 SECRET_KEY = 'django-insecure-pezrtr^r_r4leu)7usyy*x27ca@0ok3spt9n3&2rzr2^j3(e73'
@@ -20,11 +19,15 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
-    'accounts',
+    'apps.account',
+    'apps.recipes',
+    'apps.dashboard',
+    'apps.meal_planner',
+    'apps.common'
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # Sabse upar hona chahiye
+    'corsheaders.middleware.CorsMiddleware',  
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -34,7 +37,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# Kyunke urls.py core folder mein hai
 ROOT_URLCONF = 'core.urls'
 
 TEMPLATES = [
@@ -60,16 +62,18 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'ingrido_db',
         'USER': 'postgres',
-        'PASSWORD': 'amna@hanu12'
+        'PASSWORD': 'anb'
     }
 }
+
+AUTH_USER_MODEL = 'account.User'
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 8}},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
-    {'NAME': 'accounts.validators.ComplexPasswordValidator'},
+    {'NAME': 'apps.account.validators.ComplexPasswordValidator'},
 ]
 
 LANGUAGE_CODE = 'en-us'
@@ -89,4 +93,11 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
     ],
+}
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
 }

@@ -1,19 +1,19 @@
 import { AuthProvider } from "./context/AuthContext";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Navbar } from "./components/NavBar";
-import LoginPage from "./pages/LoginPage";       
-import RegisterPage from "./pages/RegisterPage";  
-import { LandingPage } from "./pages/LandingPage";
-import { DashboardPage as Dashboard } from "./pages/DashboardPage";
-import SearchResultsPage from "./pages/SearchResultsPage";
-import { Footer } from "./components/Footer";
-import PlannerPage from "./pages/WeeklyPlanPage";
-import CityPage from "./pages/CityPage";
-import DishesListPage from "./pages/DishesListPage";
-import SavedPage from "./pages/SavedPage";
-import { UserProfileSettings } from "./components/UserProfileSettings";
-import NotFound from "./pages/NotFoundPage";
-import { RecipieDetail } from "./pages/RecipieDetailPage";
+import Navbar from "./Features/navbar/Navbar";
+import LoginPage from "./Features/auth/LoginPage";       
+import RegisterPage from "./Features/register/RegisterPage";  
+import LandingPage  from "./Features/landing/LandingPage";
+import Dashboard  from "./Features/DashBoard/DashBoardPage";
+import SearchResultsPage from "./Features/search/SearchResultsPage";
+import Footer from "./Features/footer/Footer";
+import WeeklyPlanPage from "./Features/meal-planner/WeeklyPlanPage";
+import CityPage from "./Features/cities/CityPage";
+import DishesListPage from "./Features/dishes/DishesListPage";
+import SavedPage from "./Features/saved/SavedPage";
+import ProfilePage from "./Features/profile/ProfilePage";
+import NotFound from "./Features/not-found/NotFoundPage";
+import RecipeDetailPage from "./Features/recipe/RecipeDetailPage";
 
 function App() {
   return (
@@ -27,14 +27,13 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/search-results" element={<SearchResultsPage />} />
-            <Route path="/planner" element={<PlannerPage />} />
+            <Route path="/planner" element={<WeeklyPlanPage />} />
             <Route path="/city" element={<CityPage />} />
             <Route path="city/:cityName/dishesList" element={<DishesListPage />} />
             <Route path="/saved" element={<SavedPage />} />
-            <Route path="/profile" element={<UserProfileSettings />} />
-            {/* Sahi dynamic parameter matching bina backslash ke */}
-            // App.jsx ke andar Routes mein yeh path lazmi check karein:
-<Route path="/recipe/ai/:id" element={<RecipieDetail />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/recipe/:id" element={<RecipeDetailPage  />} />        
+            <Route path="/recipe/ai/:id" element={<RecipeDetailPage  />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>

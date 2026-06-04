@@ -116,9 +116,6 @@ export function WelcomeHero({ name }) {
       <div className="w-full max-w-2xl text-center mb-6">
         <h2 className="text-lg font-medium text-gray-500">Hello, {name}!</h2>
         <h1 className="text-3xl md:text-4xl font-bold text-black">What are we cooking today?</h1>
-        <p className="text-xs text-primary font-semibold mt-1 flex items-center justify-center gap-1">
-          <Sparkles size={12} className="animate-pulse" /> Powered by Groq AI Chef
-        </p>
       </div>
 
       <div ref={dropdownRef} className="w-full max-w-lg relative z-50">

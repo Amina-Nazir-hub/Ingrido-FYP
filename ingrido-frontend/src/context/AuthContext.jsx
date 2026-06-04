@@ -7,7 +7,6 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Jab page refresh ho, toh localStorage se name uthao
   useEffect(() => {
     const token = localStorage.getItem("ingrido_token");
     const name = localStorage.getItem("user_name");
@@ -20,7 +19,6 @@ export function AuthProvider({ children }) {
 
   const login = (userData) => {
     setIsLoggedIn(true);
-    // User data se name lein, warna "User" default rakhein
     const name = userData?.name || "User"; 
     setUser({ name });
     localStorage.setItem("isLoggedIn", "true");

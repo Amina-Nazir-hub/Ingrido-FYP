@@ -116,8 +116,8 @@ export function RecipieDetail() {
 
     try {
       const endpoint = recipe?.id && !isAiGenerated
-        ? `${BACKEND_URL}/api/accounts/recipes/${recipe.id}/ai-substitute/`
-        : `${BACKEND_URL}/api/accounts/recipes/ai-substitute/`;
+        ? `${BACKEND_URL}/api/account/recipes/${recipe.id}/ai-substitute/`
+        : `${BACKEND_URL}/api/account/recipes/ai-substitute/`;
       
       const payload = {
         ingredient,
@@ -252,11 +252,6 @@ export function RecipieDetail() {
       <section className="container mx-auto max-w-6xl mt-10 grid gap-10 lg:grid-cols-[1.4fr_1fr] px-4">
         <div className="space-y-4">
           <div className="relative overflow-hidden rounded-2xl bg-black aspect-video shadow-lg ring-1 ring-border">
-            {isAiGenerated && (
-              <div className="absolute top-4 left-4 z-10 bg-purple-600 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow flex items-center gap-1 animate-pulse">
-                <Sparkles size={12} /> AI Chef Masterpiece
-              </div>
-            )}
             
             {recipe.youtube_video_id ? (
               <iframe

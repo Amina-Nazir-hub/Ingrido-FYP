@@ -5,7 +5,10 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/accounts/', include('accounts.urls')),  # ← IMPORTANT: 'api/accounts/' prefix
+    path('api/account/', include('apps.account.urls')),
+    path('api/recipes/', include('apps.recipes.urls')),
+    path('api/dashboard/', include('apps.dashboard.urls')),
+    path('api/meal-planner/', include('apps.meal_planner.urls')),
 ]
 
 if settings.DEBUG:
