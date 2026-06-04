@@ -65,6 +65,16 @@ def user_profile(request):
         profile.save()
         return Response({'message': 'Profile updated successfully'})
 
+# apps/accounts/views.py
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_account(request):
+    """Delete user account permanently"""
+    user = request.user
+    user.delete()
+    return Response({'message': 'Account deleted successfully'}, status=200)
+
 # ========== BOOKMARKS ==========
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

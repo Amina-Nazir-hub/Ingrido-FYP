@@ -8,19 +8,19 @@ export const MobileMenu = ({ isOpen, isLoggedIn, onClose, onLogout }) => {
     <div className="absolute top-16 left-0 right-0 bg-card border-b border-border p-6 flex flex-col gap-4 md:hidden shadow-2xl animate-in slide-in-from-top">
       {isLoggedIn ? (
         <>
-          <Link to={NAV_LINKS.PROTECTED.DASHBOARD} onClick={onClose} className="font-bold py-2 border-b border-border">
+          <Link to={NAV_LINKS.PROTECTED.DASHBOARD} onClick={onClose} className="font-bold py-2 border-b">
             Dashboard
           </Link>
-          <Link to={NAV_LINKS.PROTECTED.PLANNER} onClick={onClose} className="font-bold py-2 border-b border-border">
+          <Link to={NAV_LINKS.PROTECTED.PLANNER} onClick={onClose} className="font-bold py-2 border-b">
             Weekly Plan
           </Link>
-          <Link to={NAV_LINKS.PROTECTED.SAVED} onClick={onClose} className="font-bold py-2 border-b border-border">
+          <Link to={NAV_LINKS.PROTECTED.SAVED} onClick={onClose} className="font-bold py-2 border-b">
             Saved
           </Link>
-          <Link to={NAV_LINKS.PROTECTED.CITY} onClick={onClose} className="font-bold py-2 border-b border-border">
-            Explore City
+          <Link to={NAV_LINKS.PROTECTED.CITY} onClick={onClose} className="font-bold py-2 border-b">
+            ExploreCity
           </Link>
-          <Link to={NAV_LINKS.PROTECTED.PROFILE} onClick={onClose} className="font-bold py-2 border-b border-border">
+          <Link to={NAV_LINKS.PROTECTED.PROFILE} onClick={onClose} className="font-bold py-2 border-b">
             My Profile
           </Link>
           <button 

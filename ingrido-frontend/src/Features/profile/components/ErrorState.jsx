@@ -1,16 +1,17 @@
 import { AlertCircle } from "lucide-react";
 
-export const ErrorState = ({ error, onRetry }) => (
-  <div className="min-h-screen bg-background flex items-center justify-center">
-    <div className="text-center p-8 bg-red-50 rounded-xl border border-red-200">
-      <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-3" />
-      <p className="text-red-600 mb-4">{error}</p>
-      <button
-        onClick={onRetry}
-        className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
-      >
-        Try Again
+export const ErrorState = ({ error, onDismiss }) => {
+  if (!error) return null;
+
+  return (
+    <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-xl flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <AlertCircle className="w-4 h-4" />
+        <span className="text-sm">{error}</span>
+      </div>
+      <button onClick={onDismiss} className="text-red-700 hover:text-red-900">
+        ×
       </button>
     </div>
-  </div>
-);
+  );
+};

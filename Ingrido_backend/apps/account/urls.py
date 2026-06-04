@@ -3,7 +3,7 @@ from .views import (
     register_user, login_user, user_profile,
     toggle_bookmark, toggle_ai_bookmark, saved_recipes,
     get_search_history, add_search_history, clear_search_history, remove_search_item,
-    get_viewed_recipes, add_viewed_recipe, clear_viewed_recipes,
+    get_viewed_recipes, add_viewed_recipe, clear_viewed_recipes, delete_account
 )
 
 urlpatterns = [
@@ -11,6 +11,7 @@ urlpatterns = [
     path('register/', register_user, name='register'),
     path('login/', login_user, name='login'),
     path('profile/', user_profile, name='user_profile'),
+    path('delete-account/', delete_account, name='delete_account'),
     
     # Bookmarks
     path('recipes/ai/<str:recipe_title>/bookmark/', toggle_ai_bookmark, name='toggle_ai_bookmark'),

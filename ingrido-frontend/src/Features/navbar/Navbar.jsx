@@ -3,8 +3,6 @@ import { Logo } from "./components/Logo";
 import { DesktopMenu } from "./components/DesktopMenu";
 import { MobileMenu } from "./components/MobileMenu";
 import { MobileMenuButton } from "./components/MobileMenuButton";
-import { AuthButtons } from "./components/AuthButtons";
-import { UserProfile } from "./components/UserProfile";
 
 export function Navbar() {
   const { isLoggedIn, loading, isOpen, toggleMenu, closeMenu, logout, userInfo } = useNavbar();
@@ -18,17 +16,11 @@ export function Navbar() {
       <div className="container mx-auto px-4 flex items-center justify-between">
         <Logo />
 
-        <DesktopMenu>
-          {isLoggedIn ? (
-            <UserProfile 
-              displayLetter={userInfo.displayLetter}
-              displayName={userInfo.firstName}
-              onLogout={logout}
-            />
-          ) : (
-            <AuthButtons />
-          )}
-        </DesktopMenu>
+        <DesktopMenu 
+          isLoggedIn={isLoggedIn}
+          displayLetter={userInfo.displayLetter}
+          displayName={userInfo.firstName}
+        />
 
         <MobileMenuButton isOpen={isOpen} onToggle={toggleMenu} />
       </div>

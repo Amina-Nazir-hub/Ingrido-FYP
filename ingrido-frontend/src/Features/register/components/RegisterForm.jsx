@@ -1,14 +1,10 @@
 import { useState } from "react";
 import { User, Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import PasswordStrength from "./PasswordStrength";
-import HealthConditionsSelect from "./HealthConditionsSelect";
-import DietaryPreferencesSelect from "./DietaryPreferencesSelect";
 
 const RegisterForm = ({
   formData,
   onInputChange,
-  onHealthConditionsChange,
-  onDietaryPreferencesChange,
   onSubmit,
   isPasswordValid,
   isPasswordFocused,
@@ -84,18 +80,6 @@ const RegisterForm = ({
           <PasswordStrength password={formData.password} isFocused={isPasswordFocused} />
         </div>
       </div>
-
-      <hr className="border-border my-10" />
-
-      <HealthConditionsSelect 
-        selectedConditions={formData.healthConditions}
-        onChange={onHealthConditionsChange}
-      />
-
-      <DietaryPreferencesSelect 
-        selectedPreferences={formData.dietaryPreferences}
-        onChange={onDietaryPreferencesChange}
-      />
 
       <button
         type="submit"
