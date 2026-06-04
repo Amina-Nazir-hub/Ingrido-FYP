@@ -2,7 +2,7 @@ import os
 import django
 
 # Django settings ko configure karna
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
 from apps.models import City, Recipe
