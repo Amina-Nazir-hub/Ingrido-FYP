@@ -5,6 +5,7 @@ const getAuthConfig = () => {
   const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
   return {
     headers: token ? { Authorization: `Token ${token}` } : {},
+    timeout: 30000, 
   };
 };
 

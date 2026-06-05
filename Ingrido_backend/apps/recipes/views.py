@@ -263,7 +263,7 @@ def get_ai_substitute(request, pk=None):
             messages=[{"role": "user", "content": prompt}],
             model="llama-3.1-8b-instant",
             temperature=0.5,
-            max_tokens=80
+            max_tokens=1500
         )
         substitute = chat_completion.choices[0].message.content.strip()
         return Response({'substitute': substitute})

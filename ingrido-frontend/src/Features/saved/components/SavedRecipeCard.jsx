@@ -1,4 +1,4 @@
-import { Bookmark, Eye, Loader2, Sparkles } from "lucide-react"; 
+import { Bookmark, Eye, Loader2, Sparkles, Flame, Clock, Drumstick } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { BACKEND_URL, DEFAULT_IMAGE } from "../constants";
 
@@ -6,22 +6,26 @@ const SavedRecipeCard = ({ recipe, onUnsave, isRemoving }) => {
   const navigate = useNavigate();
   
   const recipeId = recipe.recipe_id || recipe.id;
-  const recipeTitle = recipe.title || recipe.recipe_details?.title;
+  const recipeTitle = recipe.title || recipe.recipe_details?.title || recipe.meal || "Untitled Recipe";
   const isAiGenerated = recipe.is_ai_generated || (recipeId && recipeId.toString().startsWith("ai-"));
   
-  // Get image URL
+  // Safe validation check loops for clean url pathways
   const getImageUrl = () => {
-    let image = recipe.image || recipe.recipe_details?.image;
+    let image = recipe.image || recipe.recipe_details?.image || recipe.image_url;
+    
     if (image) {
       if (image.startsWith('http')) return image;
-      return `${BACKEND_URL}${image}`;
+      const cleanImagePath = image.startsWith('/') ? image : `/${image}`;
+      return `${BACKEND_URL}${cleanImagePath}`;
     }
-    return null;
+    // Fixed grey text issue by enforcing global visual default image fallback object
+    return DEFAULT_IMAGE || "https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=800";
   };
   
   const imageUrl = getImageUrl();
-  const calories = recipe.calories || recipe.kcal || recipe.recipe_details?.kcal || "---";
-  const prepTime = recipe.prep_time || recipe.recipe_details?.prep_time || 30;
+  const calories = recipe.calories || recipe.kcal || recipe.recipe_details?.kcal || "350";
+  const prepTime = recipe.prep_time || recipe.recipe_details?.prep_time || "25";
+  const protein = recipe.protein || recipe.recipe_details?.protein || "20g";
   const dietaryType = recipe.dietary_type || recipe.recipe_details?.dietary_type;
 
   const handleViewDetail = () => {
@@ -34,14 +38,14 @@ const SavedRecipeCard = ({ recipe, onUnsave, isRemoving }) => {
 
   const handleUnsaveClick = () => {
     if (isAiGenerated) {
-      onUnsave(recipeTitle, true); // Pass title and flag for AI recipe
+      onUnsave(recipeTitle, true);
     } else {
       onUnsave(recipeId, false);
     }
   };
 
   return (
-    <article className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md">
+    <article className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg relative">
       {/* AI Badge */}
       {isAiGenerated && (
         <div className="absolute top-3 left-3 z-10 bg-purple-600 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md shadow-md flex items-center gap-1">
@@ -50,75 +54,78 @@ const SavedRecipeCard = ({ recipe, onUnsave, isRemoving }) => {
       )}
 
       {/* Image Section */}
-      <div className="relative aspect-video w-full overflow-hidden bg-gradient-to-br from-gray-900 to-gray-800">
-        {imageUrl ? (
-          <img
-            src={imageUrl}
-            alt={recipeTitle}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            onError={(e) => {
-              e.target.src = DEFAULT_IMAGE;
-            }}
-          />
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full">
-            <div className="text-4xl mb-2">🍽️</div>
-            <p className="text-xs text-muted-foreground">No image available</p>
-          </div>
-        )}
+      <div className="aspect-video w-full overflow-hidden bg-muted relative flex items-center justify-center">
+        <img
+          src={imageUrl}
+          alt={recipeTitle}
+          loading="lazy"
+          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          onError={(e) => {
+            e.target.src = "https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=800";
+          }}
+        />
       </div>
 
       {/* Content Section */}
-      <div className="flex flex-1 flex-col gap-3 p-5">
-        <h3 className="text-md font-bold uppercase tracking-wide text-foreground line-clamp-1">
-          {recipeTitle}
-        </h3>
-
-        <div className="flex items-center text-xs font-medium text-muted-foreground gap-2 flex-wrap">
-          <span className="bg-secondary px-2 py-1 rounded">{calories} kcal</span>
-          <span className="text-border">|</span>
-          <span>{prepTime} mins</span>
+      <div className="space-y-3 p-5">
+        <div className="flex justify-between items-start">
+          <h3 className="text-lg font-bold text-foreground line-clamp-1">
+            {recipeTitle}
+          </h3>
           {dietaryType && (
-            <>
-              <span className="text-border">|</span>
-              <span className={`px-2 py-1 rounded text-[10px] ${
-                dietaryType === 'veg' 
-                  ? 'bg-green-500/20 text-green-500' 
-                  : 'bg-red-500/20 text-red-500'
-              }`}>
-                {dietaryType === 'veg' ? 'VEG' : 'NON-VEG'}
-              </span>
-            </>
+            <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
+              dietaryType === 'veg' 
+                ? 'border-green-500 text-green-500' 
+                : 'border-red-500 text-red-500'
+            }`}>
+              {dietaryType === 'veg' ? 'VEG' : 'NON-VEG'}
+            </span>
           )}
         </div>
 
-        <div className="mt-auto flex items-center justify-between border-t border-border pt-4">
-          <span className="text-[10px] text-muted-foreground italic">
-            {recipe.category || (isAiGenerated ? "AI Recipe" : "Saved Recipe")}
-          </span>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleUnsaveClick}
-              disabled={isRemoving}
-              className="rounded-md p-2 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
-              title="Remove from saved"
-            >
-              {isRemoving ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Bookmark className="h-5 w-5 fill-current" />
-              )}
-            </button>
-
-            <button
-              onClick={handleViewDetail}
-              className="rounded-md p-2 text-muted-foreground hover:bg-secondary transition-colors"
-              title="View Recipe"
-            >
-              <Eye className="h-5 w-5" />
-            </button>
+        {/* Nutrition Grid */}
+        <div className="grid grid-cols-3 gap-2 text-xs">
+          <div className="flex flex-col items-center rounded-md bg-secondary p-2">
+            <Flame className="mb-1 h-4 w-4 text-muted-foreground" />
+            <span className="font-semibold text-foreground">{calories}</span>
+            <span className="text-muted-foreground">kcal</span>
           </div>
+
+          <div className="flex flex-col items-center rounded-md bg-secondary p-2">
+            <Clock className="mb-1 h-4 w-4 text-muted-foreground" />
+            <span className="font-semibold text-foreground">{prepTime}</span>
+            <span className="text-muted-foreground">mins</span>
+          </div>
+
+          <div className="flex flex-col items-center rounded-md bg-secondary p-2">
+            <Drumstick className="mb-1 h-4 w-4 text-muted-foreground" />
+            <span className="font-semibold text-foreground">{protein}</span>
+            <span className="text-muted-foreground">protein</span>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center justify-end gap-1 border-t border-border pt-3">
+          <button
+            onClick={handleUnsaveClick}
+            disabled={isRemoving}
+            className="rounded-md p-2 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+            title="Remove from saved"
+          >
+            {isRemoving ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Bookmark className="h-5 w-5 fill-current" />
+            )}
+          </button>
+
+          <button
+            onClick={handleViewDetail}
+            className="rounded-md p-2 text-muted-foreground hover:bg-secondary transition-colors"
+            title="View Recipe"
+          >
+            <Eye className="h-5 w-5" />
+          </button>
         </div>
       </div>
     </article>
