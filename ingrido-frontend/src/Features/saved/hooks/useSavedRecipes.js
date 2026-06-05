@@ -23,7 +23,20 @@ export const useSavedRecipes = () => {
       setLoading(true);
       setError(null);
       const data = await savedService.fetchSavedRecipes();
-      setSavedRecipes(data);
+      
+      // ✅ Process saved recipes to ensure images are handled properly
+      const processedData = data.map(recipe => ({
+        ...recipe,
+        // Ensure image URL is properly formatted
+        image: recipe.image || recipe.recipe_details?.image || null,
+        // Add default values for missing fields
+        kcal: recipe.kcal || recipe.calories || recipe.recipe_details?.kcal || "350",
+        prep_time: recipe.prep_time || recipe.recipe_details?.prep_time || "25",
+        protein: recipe.protein || recipe.recipe_details?.protein || "20g",
+        dietary_type: recipe.dietary_type || recipe.recipe_details?.dietary_type || "mixed"
+      }));
+      
+      setSavedRecipes(processedData);
     } catch (error) {
       console.error("Error fetching bookmarks:", error);
       setError("Failed to load saved recipes. Please try again.");
@@ -78,6 +91,29 @@ export const useSavedRecipes = () => {
 
   const clearError = () => setError(null);
 
+  // ✅ Function to refresh a single recipe's bookmark status
+  const refreshRecipeStatus = useCallback(async (recipeId) => {
+    const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
+    if (!token) return;
+
+    try {
+      const response = await axios.get(`${BACKEND_URL}/api/account/saved/`, {
+        headers: { Authorization: `Token ${token}` }
+      });
+      
+      const savedIds = response.data.map(item => item.recipe_id || item.id);
+      
+      setSavedRecipes(prev =>
+        prev.map(recipe => ({
+          ...recipe,
+          is_saved: savedIds.includes(recipe.recipe_id || recipe.id)
+        }))
+      );
+    } catch (error) {
+      console.error("Error refreshing bookmark status:", error);
+    }
+  }, []);
+
   useEffect(() => {
     fetchBookmarks();
   }, [fetchBookmarks]);
@@ -90,5 +126,6 @@ export const useSavedRecipes = () => {
     handleUnsave,
     fetchBookmarks,
     clearError,
+    refreshRecipeStatus,
   };
 };

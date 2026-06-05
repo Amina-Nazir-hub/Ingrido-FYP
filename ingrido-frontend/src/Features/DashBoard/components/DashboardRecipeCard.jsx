@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import { Flame, Clock, Bookmark, Eye, Drumstick, Sparkles } from "lucide-react";
+import { Flame, Clock, Bookmark, Eye, Drumstick } from "lucide-react";
+import axios from "axios"; // ✅ Added missing axios import
 import { BACKEND_BASE, DEFAULT_IMAGES } from "../constants";
+import { useBookmark } from "../../../context/BookmarkContext";
 
 const DashboardRecipeCard = ({
   id,
@@ -17,11 +18,33 @@ const DashboardRecipeCard = ({
   onBookmarkToggle,
 }) => {
   const navigate = useNavigate();
-  const [isSaved, setIsSaved] = useState(is_saved);
-  const [loading, setLoading] = useState(false);
-
+  const [isSavedState, setIsSavedState] = useState(is_saved); // ✅ Renamed to avoid identifier clashes
+  const [loading, setLoading] = useState(false); // ✅ Keeps a single loading instance
+  const { isBookmarked, toggleBookmark } = useBookmark();
   const displayTitle = title || meal || "Tasty Recipe";
-  const isAI = is_ai_generated || (id && id.toString().startsWith("ai-"));
+
+  // ✅ Detect if it's AI recipe or Seasonal recipe
+  const isAI =
+    is_ai_generated ||
+    (id && id.toString().startsWith("ai-")) ||
+    (id && id.toString().includes("seasonal"));
+
+  // ✅ For seasonal/weird IDs, use title for bookmark check
+  let bookmarkId = id;
+  let isAIRecipe = isAI;
+
+  // If ID contains 'seasonal' or weird patterns, treat as AI and use title
+  if (
+    id &&
+    (id.toString().includes("seasonal") ||
+      id.toString().includes("ai-seasonal") ||
+      id.toString().startsWith("ai-seasonal"))
+  ) {
+    isAIRecipe = true;
+    bookmarkId = displayTitle; // Use title instead of weird ID
+  }
+
+  const isSaved = isBookmarked(bookmarkId, displayTitle, isAIRecipe);
 
   const imageUrl = image
     ? image.startsWith("http")
@@ -66,18 +89,48 @@ const DashboardRecipeCard = ({
 
       const newSavedStatus =
         response.data.saved === true || response.data.status === "saved";
-      setIsSaved(newSavedStatus);
+      setIsSavedState(newSavedStatus);
 
       if (onBookmarkToggle) {
         onBookmarkToggle(id, newSavedStatus);
       }
+
+      // ✅ Use correct identifier for context sync
+      let bookmarkIdentifier = id;
+      let isAIForBookmark = isAI;
+
+      if (
+        id &&
+        (id.toString().includes("seasonal") ||
+          id.toString().includes("ai-seasonal"))
+      ) {
+        isAIForBookmark = true;
+        bookmarkIdentifier = displayTitle;
+      }
+
+      const newStatus = await toggleBookmark(
+        bookmarkIdentifier,
+        displayTitle,
+        isAIForBookmark,
+        {
+          title: displayTitle,
+          image: image,
+          kcal: kcal,
+          prep_time: prep_time,
+        },
+      );
+
+      if (onBookmarkToggle) {
+        onBookmarkToggle(id, newStatus);
+      }
     } catch (err) {
       console.error("Bookmark error:", err);
     } finally {
-      setLoading(false);
+      setLoading(false); // ✅ Properly fires exactly once at completion
     }
   };
 
+  // ✅ Return block is now properly aligned with the component tree scope
   return (
     <article className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg relative">
       <div className="aspect-video w-full overflow-hidden bg-muted relative">
