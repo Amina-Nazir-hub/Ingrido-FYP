@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import { Flame, Clock, Bookmark, Eye, Drumstick, Sparkles } from "lucide-react";
 import { BACKEND_BASE, DEFAULT_IMAGES } from "../constants";
+import { useBookmark } from "../../../context/BookmarkContext";
 
 const DashboardRecipeCard = ({ 
   id, 
@@ -17,11 +17,26 @@ const DashboardRecipeCard = ({
   onBookmarkToggle 
 }) => {
   const navigate = useNavigate();
-  const [isSaved, setIsSaved] = useState(is_saved);
-  const [loading, setLoading] = useState(false);
+  const { isBookmarked, toggleBookmark, refreshBookmarks } = useBookmark();
   
   const displayTitle = title || meal || "Tasty Recipe";
-  const isAI = is_ai_generated || (id && id.toString().startsWith("ai-"));
+  
+  // ✅ Detect if it's AI recipe or Seasonal recipe
+  const isAI = is_ai_generated || (id && id.toString().startsWith("ai-")) || (id && id.toString().includes("seasonal"));
+  
+  const [loading, setLoading] = useState(false);
+  
+  // ✅ For seasonal/weird IDs, use title for bookmark check
+  let bookmarkId = id;
+  let isAIRecipe = isAI;
+  
+  // If ID contains 'seasonal' or weird patterns, treat as AI and use title
+  if (id && (id.toString().includes('seasonal') || id.toString().includes('ai-seasonal') || id.toString().startsWith('ai-seasonal'))) {
+    isAIRecipe = true;
+    bookmarkId = displayTitle; // Use title instead of weird ID
+  }
+  
+  const isSaved = isBookmarked(bookmarkId, displayTitle, isAIRecipe);
 
   const imageUrl = image
     ? image.startsWith("http")
@@ -39,39 +54,30 @@ const DashboardRecipeCard = ({
 
   const handleBookmark = async (e) => {
     e.stopPropagation();
-    
-    const token = localStorage.getItem("ingrido_token");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-
     setLoading(true);
     
-    try {
-      let endpoint;
-      if (isAI) {
-        endpoint = `${BACKEND_BASE}/api/account/recipes/ai/${encodeURIComponent(displayTitle)}/bookmark/`;
-      } else {
-        endpoint = `${BACKEND_BASE}/api/account/recipes/${id}/bookmark/`;
-      }
-
-      const response = await axios.post(endpoint, {}, {
-        headers: { Authorization: `Token ${token}` }
-      });
-      
-      const newSavedStatus = response.data.saved === true || response.data.status === "saved";
-      setIsSaved(newSavedStatus);
-      
-      if (onBookmarkToggle) {
-        onBookmarkToggle(id, newSavedStatus);
-      }
-      
-    } catch (err) {
-      console.error("Bookmark error:", err);
-    } finally {
-      setLoading(false);
+    // ✅ Use correct identifier for bookmark
+    let bookmarkIdentifier = id;
+    let isAIForBookmark = isAI;
+    
+    // If ID contains 'seasonal', use title for bookmark
+    if (id && (id.toString().includes('seasonal') || id.toString().includes('ai-seasonal'))) {
+      isAIForBookmark = true;
+      bookmarkIdentifier = displayTitle;
     }
+    
+    const newStatus = await toggleBookmark(bookmarkIdentifier, displayTitle, isAIForBookmark, {
+      title: displayTitle,
+      image: image,
+      kcal: kcal,
+      prep_time: prep_time
+    });
+    
+    if (onBookmarkToggle) {
+      onBookmarkToggle(id, newStatus);
+    }
+    
+    setLoading(false);
   };
 
   return (

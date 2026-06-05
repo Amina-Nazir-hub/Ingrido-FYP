@@ -1,6 +1,37 @@
+// Features/recipe/components/RecipeHeader.jsx
+import { useState } from "react";
 import { ArrowLeft, Bookmark } from "lucide-react";
+import { useBookmark } from "../../../context/BookmarkContext";
 
-const RecipeHeader = ({ title, isSaved, onSave, onBack }) => {
+const RecipeHeader = ({ title, id, isAiGenerated, onBack }) => {
+  const { isBookmarked, toggleBookmark } = useBookmark();
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // ✅ Debug log to see what's coming in
+  console.log("RecipeHeader received:", { title, id, isAiGenerated });
+  
+  // ✅ Make sure we have valid id
+  const validId = id || (isAiGenerated ? title : null);
+  
+  if (!validId && !isAiGenerated) {
+    console.error("RecipeHeader: No valid id provided!");
+  }
+  
+  const isSaved = isBookmarked(validId, title, isAiGenerated);
+
+  const handleSave = async () => {
+    if (!validId && !isAiGenerated) {
+      console.error("Cannot save: No valid identifier");
+      alert("Cannot save this recipe. Missing information.");
+      return;
+    }
+    
+    setIsLoading(true);
+    const result = await toggleBookmark(validId, title, isAiGenerated);
+    console.log("Save completed, new status:", result);
+    setIsLoading(false);
+  };
+
   return (
     <section className="border-b border-border bg-secondary/40 mt-20 px-4">
       <div className="container py-8 mx-auto max-w-6xl">
@@ -18,7 +49,8 @@ const RecipeHeader = ({ title, isSaved, onSave, onBack }) => {
           </div>
 
           <button
-            onClick={onSave}
+            onClick={handleSave}
+            disabled={isLoading}
             className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border transition-all duration-300 ${
               isSaved
                 ? "bg-primary/10 border-primary text-primary"
