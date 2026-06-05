@@ -65,6 +65,8 @@ def user_profile(request):
         profile.save()
         return Response({'message': 'Profile updated successfully'})
 
+# apps/accounts/views.py
+
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def delete_account(request):
@@ -77,14 +79,16 @@ def delete_account(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def toggle_bookmark(request, recipe_id=None):
-    from apps.recipes.models import Recipe
+    from apps.recipes.models import Recipe, AIGeneratedRecipe
     
     recipe_data = request.data.get('recipe_data')
     
     if recipe_id and str(recipe_id).isdigit():
+        from apps.recipes.models import Recipe
         recipe = get_object_or_404(Recipe, id=recipe_id)
     elif recipe_data:
         recipe_title = recipe_data.get('title')
+        from apps.recipes.models import Recipe
         existing_recipe = Recipe.objects.filter(title__iexact=recipe_title).first()
         if existing_recipe:
             recipe = existing_recipe
@@ -116,11 +120,22 @@ def toggle_ai_bookmark(request, recipe_title):
     from urllib.parse import unquote
     
     recipe_title = unquote(recipe_title).replace('-', ' ').title()
+    
+    # Get or create user profile
     profile, created = UserProfile.objects.get_or_create(user=request.user)
     
-    if not profile.ai_bookmarks or not isinstance(profile.ai_bookmarks, list):
+    # Ensure ai_bookmarks is a list
+    if not profile.ai_bookmarks:
         profile.ai_bookmarks = []
     
+    # Convert to list if it's not
+    if not isinstance(profile.ai_bookmarks, list):
+        profile.ai_bookmarks = []
+    
+    print(f"Current bookmarks: {profile.ai_bookmarks}")  # Debug
+    print(f"Toggling for: {recipe_title}")  # Debug
+    
+    # Toggle bookmark
     if recipe_title in profile.ai_bookmarks:
         profile.ai_bookmarks.remove(recipe_title)
         saved = False
@@ -131,6 +146,9 @@ def toggle_ai_bookmark(request, recipe_title):
         status_msg = 'saved'
     
     profile.save()
+    
+    print(f"New bookmarks: {profile.ai_bookmarks}")  # Debug
+    
     return Response({
         'status': status_msg, 
         'saved': saved,
@@ -143,51 +161,36 @@ def saved_recipes(request):
     """Get all saved recipes (both normal and AI)"""
     from apps.recipes.models import AIGeneratedRecipe
     
+    # Get normal saved recipes
     bookmarks = SavedRecipe.objects.filter(user=request.user).select_related('recipe')
+    
     data = []
     
-    # 1. Standard Bookmarks Processing
+    # Add normal recipes
     for b in bookmarks:
         recipe_data = RecipeListSerializer(b.recipe, context={'request': request}).data
         recipe_data['bookmark_id'] = b.id
         recipe_data['saved_at'] = b.saved_at
         recipe_data['is_ai_generated'] = False
-        
-        if 'image' not in recipe_data or not recipe_data['image']:
-            if b.recipe.image:
-                recipe_data['image'] = b.recipe.image.url if hasattr(b.recipe.image, 'url') else b.recipe.image
         data.append(recipe_data)
     
-    # 2. AI Bookmarks Synced Mapping Logic
+    # Get AI bookmarks from user profile
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
     
     if profile.ai_bookmarks and isinstance(profile.ai_bookmarks, list):
         for ai_title in profile.ai_bookmarks:
+            # Check if already in data
             if not any(item.get('title') == ai_title for item in data):
-                # Safe fallback searching filters for dynamic strings
-                ai_recipe = AIGeneratedRecipe.objects.filter(title__iexact=ai_title.strip()).first()
+                # Get AI recipe from cache
+                ai_recipe = AIGeneratedRecipe.objects.filter(title__iexact=ai_title).first()
                 
-                image_path = None
-                if ai_recipe:
-                    if hasattr(ai_recipe, 'image') and ai_recipe.image:
-                        image_path = ai_recipe.image.url if hasattr(ai_recipe.image, 'url') else ai_recipe.image
-                    elif hasattr(ai_recipe, 'image_url') and ai_recipe.image_url:
-                        image_path = ai_recipe.image_url
-                
-                # FIXED: User ke search page se cache lookup details check lagaye
-                if not image_path:
-                    # Agar static lookup na mile to dynamic history context payload verify karein
-                    viewed_recipe = UserViewedRecipe.objects.filter(user=request.user, recipe_title__iexact=ai_title).first()
-                    if viewed_recipe and isinstance(viewed_recipe.recipe_data, dict):
-                        image_path = viewed_recipe.recipe_data.get('image') or viewed_recipe.recipe_data.get('image_url')
-
                 ai_data = {
                     'id': f"ai-{ai_title.replace(' ', '-')}",
                     'title': ai_title,
                     'meal': ai_title,
-                    'image': image_path,
+                    'image': ai_recipe.image_url if ai_recipe else None,
                     'prep_time': ai_recipe.prep_time if ai_recipe else 30,
-                    'kcal': ai_recipe.calories if (ai_recipe and hasattr(ai_recipe, 'calories')) else (ai_recipe.kcal if ai_recipe else 350),
+                    'kcal': ai_recipe.kcal if ai_recipe else 350,
                     'category': 'AI Generated',
                     'is_ai_generated': True,
                     'is_saved': True,

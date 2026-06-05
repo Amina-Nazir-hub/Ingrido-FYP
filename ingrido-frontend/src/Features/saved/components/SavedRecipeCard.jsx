@@ -6,20 +6,17 @@ const SavedRecipeCard = ({ recipe, onUnsave, isRemoving }) => {
   const navigate = useNavigate();
   
   const recipeId = recipe.recipe_id || recipe.id;
-  const recipeTitle = recipe.title || recipe.recipe_details?.title || recipe.meal || "Untitled Recipe";
+  const recipeTitle = recipe.title || recipe.recipe_details?.title;
   const isAiGenerated = recipe.is_ai_generated || (recipeId && recipeId.toString().startsWith("ai-"));
   
-  // Safe validation check loops for clean url pathways
+  // Get image URL
   const getImageUrl = () => {
-    let image = recipe.image || recipe.recipe_details?.image || recipe.image_url;
-    
+    let image = recipe.image || recipe.recipe_details?.image;
     if (image) {
       if (image.startsWith('http')) return image;
-      const cleanImagePath = image.startsWith('/') ? image : `/${image}`;
-      return `${BACKEND_URL}${cleanImagePath}`;
+      return `${BACKEND_URL}${image}`;
     }
-    // Fixed grey text issue by enforcing global visual default image fallback object
-    return DEFAULT_IMAGE || "https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=800";
+    return DEFAULT_IMAGE;
   };
   
   const imageUrl = getImageUrl();
@@ -54,14 +51,14 @@ const SavedRecipeCard = ({ recipe, onUnsave, isRemoving }) => {
       )}
 
       {/* Image Section */}
-      <div className="aspect-video w-full overflow-hidden bg-muted relative flex items-center justify-center">
+      <div className="aspect-video w-full overflow-hidden bg-muted relative">
         <img
           src={imageUrl}
           alt={recipeTitle}
           loading="lazy"
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           onError={(e) => {
-            e.target.src = "https://images.unsplash.com/photo-1495521821757-a1efb6729352?q=80&w=800";
+            e.target.src = DEFAULT_IMAGE;
           }}
         />
       </div>
@@ -83,7 +80,7 @@ const SavedRecipeCard = ({ recipe, onUnsave, isRemoving }) => {
           )}
         </div>
 
-        {/* Nutrition Grid */}
+        {/* Nutrition Grid - Same as Dashboard/DishList cards */}
         <div className="grid grid-cols-3 gap-2 text-xs">
           <div className="flex flex-col items-center rounded-md bg-secondary p-2">
             <Flame className="mb-1 h-4 w-4 text-muted-foreground" />

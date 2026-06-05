@@ -1,6 +1,8 @@
 import json
 import re
 import random
+from dotenv import load_dotenv
+import os
 from urllib.parse import unquote
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -8,11 +10,17 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from groq import Groq
 
 from .models import City, Recipe, AIGeneratedRecipe
 from .serializers import CitySerializer, RecipeListSerializer, RecipeDetailSerializer
 from .services import fetch_youtube_video_id, get_groq_client
 from apps.common.services import get_ai_generated_image
+
+load_dotenv()
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+groq_client = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 
 # ========== CITY & RECIPE VIEWS ==========
 
@@ -234,43 +242,122 @@ def get_ai_recipe_detail(request, recipe_title):
         return Response({'error': f"AI Recipe Error: {str(e)}"}, status=500)
 
 # ========== AI SUBSTITUTE ==========
-
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([AllowAny])
 def get_ai_substitute(request, pk=None):
-    """Get AI substitute for an ingredient"""
+    """
+    Pure AI substitute - AI reads recipe and decides what to suggest
+    Supports both database recipes (by pk) and AI-generated recipes (by title)
+    """
+    
+    # Check if it's AI recipe (by title) or DB recipe (by pk)
+    recipe_title = request.data.get('recipe_title')
     ingredient = request.data.get('ingredient', '').strip()
-    recipe_title = request.data.get('recipe_title', '').strip()
-    groq_client = get_groq_client()
-    
-    if not ingredient:
-        return Response({'error': 'Ingredient name is required'}, status=400)
-    
-    if pk:
-        recipe = get_object_or_404(Recipe, pk=pk)
-        recipe_title = recipe.title
-    
-    if not recipe_title:
-        recipe_title = "this dish"
-    
-    if not groq_client:
-        return Response({'error': 'AI service not configured'}, status=500)
-    
-    prompt = f"For '{recipe_title}', instead of '{ingredient}', suggest 2 substitutes in one short sentence."
-    
-    try:
-        chat_completion = groq_client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
-            model="llama-3.1-8b-instant",
-            temperature=0.5,
-            max_tokens=1500
-        )
-        substitute = chat_completion.choices[0].message.content.strip()
-        return Response({'substitute': substitute})
-    except Exception as e:
-        print(f"AI substitute error: {e}")
-        return Response({'error': f'AI service error: {str(e)}'}, status=500)
 
+    if not ingredient:
+        return Response({"error": "Ingredient name missing"}, status=400)
+
+    if not groq_client:
+        return Response({
+            "error": "GROQ_API_KEY not configured. Please add to .env file",
+            "setup_url": "https://console.groq.com",
+            "status": "error"
+        }, status=500)
+
+    # Get recipe details
+    recipe_name = ""
+    ingredients_list = ""
+    
+    if pk and str(pk).isdigit():
+        # Database recipe
+        recipe = get_object_or_404(Recipe, pk=pk)
+        recipe_name = recipe.title
+        ingredients_list = recipe.ingredients
+    elif recipe_title:
+        # AI-generated recipe
+        recipe_name = recipe_title
+        ai_recipe = AIGeneratedRecipe.objects.filter(title__iexact=recipe_title).first()
+        if ai_recipe:
+            ingredients_list = ai_recipe.ingredients
+        else:
+            ingredients_list = "Ingredients not available"
+    else:
+        return Response({"error": "Recipe identifier required (either pk or recipe_title)"}, status=400)
+
+    try:
+        # Pure AI prompt - AI will read recipe and decide
+        prompt = f"""You are a professional Pakistani chef giving practical advice.
+
+RECIPE NAME: {recipe_name}
+
+FULL INGREDIENTS LIST:
+{ingredients_list}
+
+USER ASKS: "I don't have {ingredient}. What should I do?"
+
+YOUR JOB:
+1. First, check if "{ingredient}" is in the ingredients list above.
+
+2. If {ingredient} is NOT in the list:
+   Reply: "This ingredient is not used in {recipe_name}. You don't need it. Just follow the recipe as written."
+
+3. If {ingredient} IS in the list:
+   - If it's ESSENTIAL (onion, garlic, ginger, tomato, chicken, beef, mutton, salt, oil, ghee, rice, flour, green chili, red chili, turmeric, cumin, coriander powder, garam masala, yogurt, cream, milk, butter, egg, potato, daal, sugar, honey, water):
+     Reply: "{ingredient} is essential for {recipe_name}. Please buy it from any grocery store."
+
+   - If it's NOT ESSENTIAL (like optional spice, garnish, or can be substituted):
+     Suggest 1-2 practical substitutes that work in Pakistani cooking.
+
+EXAMPLES:
+- For "green chili" when essential: "Green chili is essential for the heat in this dish. Please buy fresh green chilies from any store."
+- For "green chili" when optional: "Green chili adds heat. You can use red chili powder (1/4 tsp per chili) or skip it."
+- For "cream" when optional: "Use fresh malai or full-fat coconut milk instead of cream."
+- For "onion": "Onion is essential. Please buy fresh onions."
+- For "turmeric": "Turmeric is essential for color and flavor. Please buy from store - it's very cheap."
+- For "garam masala": "Garam masala is essential for authentic flavor. Please buy from any grocery store."
+- For "cardamom": "Cardamom adds aroma. You can skip it or use cinnamon stick as substitute."
+
+Keep response SHORT (1-2 sentences). Be honest and practical.
+
+Your response:"""
+
+        print("===================================")
+        print(f"🍽️ Recipe: {recipe_name}")
+        print(f"🥕 User missing: {ingredient}")
+        print("🤖 Asking AI...")
+        print("===================================")
+
+        completion = groq_client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[
+                {"role": "system", "content": "You are an honest Pakistani chef. Read the recipe ingredients carefully. Tell users to buy only truly essential ingredients. For non-essential items, suggest practical substitutes. Never say 'buy it' for everything. Be specific and helpful. Keep responses short (1-2 sentences)."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.6,
+            max_tokens=200
+        )
+        
+        ai_response = completion.choices[0].message.content.strip()
+        
+        print(f"✅ AI Response: {ai_response}")
+        print("===================================")
+        
+        return Response({
+            "ingredient": ingredient,
+            "recipe": recipe_name,
+            "substitute": ai_response,
+            "status": "success",
+            "provider": "Groq AI"
+        })
+        
+    except Exception as e:
+        print(f"❌ Groq Error: {str(e)}")
+        return Response({
+            "error": str(e),
+            "status": "error",
+            "message": "AI service error. Please check your API key."
+        }, status=500)
+    
 # ========== AI SEARCH ==========
 
 @api_view(['GET'])
