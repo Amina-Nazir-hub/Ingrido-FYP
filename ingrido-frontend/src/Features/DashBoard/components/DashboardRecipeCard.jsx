@@ -82,11 +82,7 @@ const DashboardRecipeCard = ({
 
   return (
     <article className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg relative">
-      {isAI && (
-        <div className="absolute top-3 left-3 z-10 bg-gradient-to-r from-purple-600 to-purple-500 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md shadow-md flex items-center gap-1">
-          <Sparkles size={10} /> AI Generated
-        </div>
-      )}
+      
 
       <div className="aspect-video w-full overflow-hidden bg-muted relative">
         <img
