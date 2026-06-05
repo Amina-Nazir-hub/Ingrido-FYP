@@ -23,7 +23,8 @@ INSTALLED_APPS = [
     'apps.recipes',
     'apps.dashboard',
     'apps.meal_planner',
-    'apps.common'
+    'apps.common',
+    'apps.cities',  # ← Add this line
 ]
 
 MIDDLEWARE = [
@@ -62,7 +63,8 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'ingrido_db',
         'USER': 'postgres',
-        'PASSWORD': 'anb'
+        'PASSWORD': 'taibajutt18'
+        
     }
 }
 
