@@ -14,15 +14,24 @@ export const useDashboardData = () => {
       const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
       const config = token ? { headers: { Authorization: `Token ${token}` } } : {};
       
-      // Updated endpoint: /api/dashboard/seasonal/
       const res = await axios.get(API_ENDPOINTS.SEASONAL_RECIPES, config);
-      setRecommendedCards(res.data);
+      
+      // ✅ FIX: Mark all seasonal recipes as AI generated
+      const processedRecipes = res.data.map(recipe => ({
+        ...recipe,
+        is_ai_generated: true
+      }));
+      
+      setRecommendedCards(processedRecipes);
       
       if (token) {
-        // Updated endpoint: /api/accounts/viewed-recipes/
         const historyRes = await axios.get(API_ENDPOINTS.VIEWED_RECIPES, config);
         if (historyRes.data.recipes) {
-          setViewHistory(historyRes.data.recipes);
+          const processedHistory = historyRes.data.recipes.map(recipe => ({
+            ...recipe,
+            is_ai_generated: recipe.is_ai_generated || false
+          }));
+          setViewHistory(processedHistory);
         }
       } else {
         const savedHistory = JSON.parse(localStorage.getItem(STORAGE_KEYS.HISTORY) || "[]");
@@ -41,7 +50,6 @@ export const useDashboardData = () => {
     const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
     if (token) {
       try {
-        // Updated endpoint: /api/accounts/viewed-recipes/clear/
         await axios.delete(API_ENDPOINTS.VIEWED_RECIPES_CLEAR, {
           headers: { Authorization: `Token ${token}` }
         });

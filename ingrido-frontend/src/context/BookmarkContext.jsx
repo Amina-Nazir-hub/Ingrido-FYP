@@ -12,11 +12,8 @@ export function BookmarkProvider({ children }) {
   const isFetching = useRef(false);
   const fetchTimeout = useRef(null);
 
-  // Fetch all bookmarks from backend
   const fetchBookmarks = async () => {
-    if (isFetching.current) {
-      return;
-    }
+    if (isFetching.current) return;
 
     const token = localStorage.getItem("ingrido_token");
     if (!token) {
@@ -40,11 +37,13 @@ export function BookmarkProvider({ children }) {
     }
   };
 
-  // Check if recipe is bookmarked
   const isBookmarked = (id, title, isAI = false) => {
     if (!id && !title) return false;
 
-    if (isAI) {
+    const isSeasonal = id && id.toString().includes("seasonal");
+    const effectiveIsAI = isAI || isSeasonal;
+
+    if (effectiveIsAI) {
       return bookmarkedRecipes.some(recipe =>
         recipe.is_ai_generated === true &&
         (recipe.title === title || recipe.title === id || recipe.recipe_id === id)
@@ -56,7 +55,7 @@ export function BookmarkProvider({ children }) {
     );
   };
 
-  // Toggle bookmark
+  // ✅ FIXED: toggleBookmark function
   const toggleBookmark = async (id, title, isAI = false, recipeData = {}) => {
     const token = localStorage.getItem("ingrido_token");
     if (!token) {
@@ -65,23 +64,62 @@ export function BookmarkProvider({ children }) {
       return false;
     }
 
-    if (!id && !title) {
-      console.error("No id or title provided for bookmark");
+    // ✅ Better validation
+    if ((!id || id === 'undefined') && !title) {
+      console.error("No valid id or title provided", { id, title });
       return false;
+    }
+
+    let actualIsAI = isAI;
+    let actualId = id;
+    let actualTitle = title;
+
+    // ✅ Seasonal/AI recipe detection
+    const isSeasonalOrAI = (id && typeof id === 'string' && 
+      (id.includes("seasonal") || id.startsWith("ai-"))) || isAI;
+    
+    if (isSeasonalOrAI) {
+      const recipeTitle = title || recipeData?.title;
+      if (!recipeTitle) {
+        console.error("No title for AI/Seasonal recipe", { id, title });
+        return false;
+      }
+      actualIsAI = true;
+      actualId = recipeTitle;
+      actualTitle = recipeTitle;
+      console.log("🔄 AI/Seasonal recipe detected! Using title:", recipeTitle);
+    }
+
+    // ✅ Handle undefined ID
+    if (actualId === 'undefined' || actualId === null || actualId === undefined) {
+      if (actualTitle) {
+        actualId = actualTitle;
+        actualIsAI = true;
+      } else {
+        console.error("Invalid ID after processing", { actualId, actualTitle });
+        return false;
+      }
     }
 
     try {
       let endpoint;
 
-      if (isAI) {
-        const recipeTitle = title || recipeData?.title;
+      if (actualIsAI) {
+        const recipeTitle = actualTitle || recipeData?.title || title;
         if (!recipeTitle) {
           console.error("No title for AI recipe");
           return false;
         }
         endpoint = `${BACKEND_BASE}/api/account/recipes/ai/${encodeURIComponent(recipeTitle)}/bookmark/`;
+        console.log("✅ AI Endpoint:", endpoint);
       } else {
-        endpoint = `${BACKEND_BASE}/api/account/recipes/${id}/bookmark/`;
+        const numericId = Number(actualId);
+        if (isNaN(numericId)) {
+          console.error("Invalid numeric ID for regular recipe", actualId);
+          return false;
+        }
+        endpoint = `${BACKEND_BASE}/api/account/recipes/${numericId}/bookmark/`;
+        console.log("✅ Regular Endpoint:", endpoint);
       }
 
       const response = await axios.post(endpoint, {}, {

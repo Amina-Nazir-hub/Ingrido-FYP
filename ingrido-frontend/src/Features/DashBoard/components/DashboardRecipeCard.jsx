@@ -1,7 +1,7 @@
+// Features/DashBoard/components/DashboardRecipeCard.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Flame, Clock, Bookmark, Eye, Drumstick } from "lucide-react";
-import axios from "axios"; // ✅ Added missing axios import
 import { BACKEND_BASE, DEFAULT_IMAGES } from "../constants";
 import { useBookmark } from "../../../context/BookmarkContext";
 
@@ -16,35 +16,20 @@ const DashboardRecipeCard = ({
   is_saved = false,
   is_ai_generated = false,
   onBookmarkToggle,
+  forceAI,  // ✅ NEW: Optional prop to force AI treatment
 }) => {
   const navigate = useNavigate();
-  const [isSavedState, setIsSavedState] = useState(is_saved); // ✅ Renamed to avoid identifier clashes
-  const [loading, setLoading] = useState(false); // ✅ Keeps a single loading instance
   const { isBookmarked, toggleBookmark } = useBookmark();
+  const [loading, setLoading] = useState(false);
   const displayTitle = title || meal || "Tasty Recipe";
 
-  // ✅ Detect if it's AI recipe or Seasonal recipe
-  const isAI =
-    is_ai_generated ||
-    (id && id.toString().startsWith("ai-")) ||
-    (id && id.toString().includes("seasonal"));
+  // ✅ FIX: Use forceAI if provided, otherwise use original is_ai_generated flag
+  const isAI = forceAI !== undefined ? forceAI : is_ai_generated;
 
-  // ✅ For seasonal/weird IDs, use title for bookmark check
-  let bookmarkId = id;
-  let isAIRecipe = isAI;
-
-  // If ID contains 'seasonal' or weird patterns, treat as AI and use title
-  if (
-    id &&
-    (id.toString().includes("seasonal") ||
-      id.toString().includes("ai-seasonal") ||
-      id.toString().startsWith("ai-seasonal"))
-  ) {
-    isAIRecipe = true;
-    bookmarkId = displayTitle; // Use title instead of weird ID
-  }
-
-  const isSaved = isBookmarked(bookmarkId, displayTitle, isAIRecipe);
+  // ✅ For AI recipes use title, for regular use id
+  const bookmarkIdentifier = isAI ? displayTitle : id;
+  
+  const isSaved = isBookmarked(bookmarkIdentifier, displayTitle, isAI);
 
   const imageUrl = image
     ? image.startsWith("http")
@@ -53,7 +38,7 @@ const DashboardRecipeCard = ({
     : DEFAULT_IMAGES.PLACEHOLDER;
 
   const handleViewDetail = () => {
-    if (isAI) {
+    if (is_ai_generated || (id && id.toString().startsWith("ai-")) || (id && id.toString().includes("seasonal"))) {
       navigate(`/recipe/ai/${encodeURIComponent(displayTitle)}`);
     } else {
       navigate(`/recipe/${id}`);
@@ -72,65 +57,39 @@ const DashboardRecipeCard = ({
     setLoading(true);
 
     try {
-      let endpoint;
-      if (isAI) {
-        endpoint = `${BACKEND_BASE}/api/account/recipes/ai/${encodeURIComponent(displayTitle)}/bookmark/`;
+      // ✅ Pass correct isAI value to parent
+      if (onBookmarkToggle) {
+        await onBookmarkToggle(
+          id,                    // recipeId
+          displayTitle,          // recipeTitle
+          isAI,                  // isAI - respect the calculated value
+          isSaved                // currentIsSaved status
+        );
       } else {
-        endpoint = `${BACKEND_BASE}/api/account/recipes/${id}/bookmark/`;
-      }
-
-      const response = await axios.post(
-        endpoint,
-        {},
-        {
-          headers: { Authorization: `Token ${token}` },
-        },
-      );
-
-      const newSavedStatus =
-        response.data.saved === true || response.data.status === "saved";
-      setIsSavedState(newSavedStatus);
-
-      if (onBookmarkToggle) {
-        onBookmarkToggle(id, newSavedStatus);
-      }
-
-      // ✅ Use correct identifier for context sync
-      let bookmarkIdentifier = id;
-      let isAIForBookmark = isAI;
-
-      if (
-        id &&
-        (id.toString().includes("seasonal") ||
-          id.toString().includes("ai-seasonal"))
-      ) {
-        isAIForBookmark = true;
-        bookmarkIdentifier = displayTitle;
-      }
-
-      const newStatus = await toggleBookmark(
-        bookmarkIdentifier,
-        displayTitle,
-        isAIForBookmark,
-        {
-          title: displayTitle,
-          image: image,
-          kcal: kcal,
-          prep_time: prep_time,
-        },
-      );
-
-      if (onBookmarkToggle) {
-        onBookmarkToggle(id, newStatus);
+        // Fallback agar parent handler nahi hai
+        const newStatus = await toggleBookmark(
+          bookmarkIdentifier,
+          displayTitle,
+          isAI,
+          {
+            title: displayTitle,
+            image: image,
+            kcal: kcal,
+            prep_time: prep_time,
+          }
+        );
+        
+        if (onBookmarkToggle) {
+          onBookmarkToggle(id, newStatus);
+        }
       }
     } catch (err) {
       console.error("Bookmark error:", err);
     } finally {
-      setLoading(false); // ✅ Properly fires exactly once at completion
+      setLoading(false);
     }
   };
 
-  // ✅ Return block is now properly aligned with the component tree scope
   return (
     <article className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg relative">
       <div className="aspect-video w-full overflow-hidden bg-muted relative">
