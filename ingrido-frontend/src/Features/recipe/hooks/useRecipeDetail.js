@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+// recipe/hooks/useRecipeDetail.js
+import { useState, useEffect, useRef } from "react";
 import { recipeService } from "../services/recipeService";
 import { saveToLocalHistory } from "../utils/recipeUtils";
 import { BACKEND_URL } from "../constants";
@@ -8,6 +9,8 @@ export const useRecipeDetail = (id, titleParam) => {
   const [loading, setLoading] = useState(true);
   const [isAiGenerated, setIsAiGenerated] = useState(false);
   const [error, setError] = useState(null);
+  const [retryCount, setRetryCount] = useState(0);
+  const maxRetries = 3;
 
   useEffect(() => {
     const fetchDetail = async () => {
@@ -17,7 +20,33 @@ export const useRecipeDetail = (id, titleParam) => {
       try {
         const isAI = (id && id.toString().startsWith("ai-")) || titleParam || !Number.isInteger(Number(id));
         
-        const data = await recipeService.fetchRecipeDetail(id, isAI, titleParam);
+        let data = null;
+        let lastError = null;
+        
+        // Retry logic for AI recipes
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            console.log(`Fetch attempt ${attempt} for: ${isAI ? 'AI' : 'DB'} recipe`);
+            data = await recipeService.fetchRecipeDetail(id, isAI, titleParam);
+            
+            if (data && !data.error) {
+              break; // Success, exit retry loop
+            }
+          } catch (err) {
+            lastError = err;
+            console.log(`Attempt ${attempt} failed:`, err.message);
+            
+            // Wait before retry (exponential backoff)
+            if (attempt < maxRetries) {
+              const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+              await new Promise(resolve => setTimeout(resolve, delay));
+            }
+          }
+        }
+        
+        if (!data || data.error) {
+          throw new Error(lastError?.message || "Failed to fetch recipe");
+        }
         
         if (data) {
           setRecipe(data);
@@ -37,7 +66,14 @@ export const useRecipeDetail = (id, titleParam) => {
           saveToLocalHistory(currentRecipe);
           
           // Save to backend history
-          await recipeService.saveToBackendHistory(currentRecipe);
+          const token = localStorage.getItem("ingrido_token");
+          if (token) {
+            try {
+              await recipeService.saveToBackendHistory(currentRecipe);
+            } catch (err) {
+              console.error("Save to backend error:", err);
+            }
+          }
         }
       } catch (err) {
         console.error("Fetch error:", err);
@@ -53,12 +89,17 @@ export const useRecipeDetail = (id, titleParam) => {
     };
     
     fetchDetail();
-  }, [id, titleParam]);
+  }, [id, titleParam, retryCount]);
+
+  const retry = () => {
+    setRetryCount(prev => prev + 1);
+  };
 
   return {
     recipe,
     loading,
     isAiGenerated,
     error,
+    retry,
   };
 };

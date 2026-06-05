@@ -1,3 +1,4 @@
+// recipe/RecipeDetailPage.jsx
 import React from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import RecipeHeader from "./components/RecipeHeader";
@@ -12,6 +13,7 @@ import NotFoundState from "./components/NotFoundState";
 import { useRecipeDetail } from "./hooks/useRecipeDetail";
 import { useRecipeSave } from "./hooks/useRecipeSave";
 import { useAISubstitute } from "./hooks/useAISubstitute";
+import { AlertCircle, RefreshCw } from "lucide-react";
 
 export function RecipeDetailPage() {
   const { id } = useParams();
@@ -19,7 +21,7 @@ export function RecipeDetailPage() {
   const navigate = useNavigate();
   const titleParam = searchParams.get("title");
   
-  const { recipe, loading, isAiGenerated, error } = useRecipeDetail(id, titleParam);
+  const { recipe, loading, isAiGenerated, error, retry } = useRecipeDetail(id, titleParam);
   const { isSaved, handleSave } = useRecipeSave(recipe, id, isAiGenerated);
   const {
     ingredientSearch,
@@ -33,8 +35,35 @@ export function RecipeDetailPage() {
     return <LoadingState />;
   }
 
+  // ✅ Show error with retry button
   if (error || !recipe) {
-    return <NotFoundState />;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center max-w-md mx-auto p-6">
+          <div className="bg-red-50 rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="h-8 w-8 text-red-500" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground mb-2">Recipe not found</h2>
+          <p className="text-muted-foreground mb-6">
+            {error || "Unable to load recipe. Please try again."}
+          </p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={retry}
+              className="px-5 py-2.5 bg-primary text-white rounded-lg font-semibold hover:bg-primary/90 transition flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" /> Try Again
+            </button>
+            <button
+              onClick={() => navigate(-1)}
+              className="px-5 py-2.5 border border-border rounded-lg font-semibold hover:bg-secondary/20 transition"
+            >
+              Go Back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const displayTitle = recipe.title || recipe.meal || "Tasty Recipe";

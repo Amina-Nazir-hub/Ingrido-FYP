@@ -1,7 +1,19 @@
-import { formatInstructions } from "../utils/recipeUtils";
+import { formatInstructions } from "../utils/recipeUtils"; 
 
 const DirectionsList = ({ instructions }) => {
-  const steps = formatInstructions(instructions);
+  
+  const steps = formatInstructions(instructions); 
+
+  if (steps.length === 0) {
+    return (
+      <div className="p-6 md:p-10 bg-secondary/5">
+        <h2 className="font-serif text-2xl font-bold mb-6 flex items-center gap-2">
+          <span className="w-1.5 h-8 bg-primary rounded-full"></span> Directions
+        </h2>
+        <p className="text-muted-foreground italic">No directions available for this recipe.</p>
+      </div>
+    );
+  }
   
   return (
     <div className="p-6 md:p-10 bg-secondary/5">
@@ -10,7 +22,7 @@ const DirectionsList = ({ instructions }) => {
       </h2>
       <div className="space-y-6">
         {steps.map((step, i) => (
-          <div key={i} className="flex gap-4 pb-4 last:pb-0">
+          <div key={i} className="flex gap-4 pb-4 last:pb-0  ">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-white font-bold text-sm">
               {i + 1}
             </span>
