@@ -6,9 +6,8 @@ const CityCard = ({ city }) => {
   const navigate = useNavigate();
 
   const getImageUrl = () => {
-    if (!city.image) return DEFAULT_IMAGE;
-    if (city.image.startsWith("http")) return city.image;
-    return `${BACKEND_URL}${city.image}`;
+    // Direct public folder se
+    return `/city_images/${city.name.toLowerCase()}.jpeg`;
   };
 
   const handleExplore = () => {
@@ -47,10 +46,34 @@ const CityCard = ({ city }) => {
           .
         </p>
 
+        {/* Famous Dishes Section */}
+        {city.famous_dishes && city.famous_dishes.length > 0 && (
+          <div className="mt-3">
+            <p className="text-xs font-semibold text-muted-foreground mb-2">
+              🍽️ Famous Dishes:
+            </p>
+            <div className="flex flex-wrap gap-1">
+              {city.famous_dishes.slice(0, 3).map((dish, idx) => (
+                <span
+                  key={idx}
+                  className="text-xs bg-[#b17b46]/10 text-[#b17b46] px-2 py-1 rounded-full"
+                >
+                  {dish}
+                </span>
+              ))}
+              {city.famous_dishes.length > 3 && (
+                <span className="text-xs text-muted-foreground px-2 py-1">
+                  +{city.famous_dishes.length - 3} more
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Bottom Section */}
         <div className="mt-auto pt-6 flex items-center justify-between border-t border-border">
           <span className="text-xs text-muted-foreground italic">
-            {city.dishes_count || 0} Dishes Available
+            {city.dishes_count || city.famous_dishes?.length || 0} Dishes Available
           </span>
 
           <button
