@@ -1,9 +1,8 @@
 # apps/dashboard/views.py
 import random
 from datetime import datetime
-from django.core.cache import cache
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from django.db.models import Q
 
@@ -30,19 +29,8 @@ def get_current_season():
 @permission_classes([AllowAny])
 def get_seasonal_recommendations(request):
     """
-    Get seasonal recommendations - Cached so recipes don't change on every render
+    Get seasonal recommendations - Fresh on every request (no cache)
     """
-    # Create cache key (different for each user)
-    if request.user.is_authenticated:
-        cache_key = f"seasonal_recs_user_{request.user.id}"
-    else:
-        cache_key = "seasonal_recs_anonymous"
-    
-    # Try to get from cache first
-    cached_recipes = cache.get(cache_key)
-    if cached_recipes is not None:
-        return Response(cached_recipes)
-    
     current_season = get_current_season()
     groq_client = get_groq_client()
     
@@ -55,13 +43,17 @@ def get_seasonal_recommendations(request):
     
     keywords = seasonal_keywords.get(current_season, ['pakistani', 'recipe'])
     
-    # Get seasonal recipes from database
-    seasonal_db_recipes = Recipe.objects.filter(
+    # Get seasonal recipes from database - NO CACHE, random order
+    seasonal_db_recipes = list(Recipe.objects.filter(
         Q(title__icontains=keywords[0]) |
         Q(title__icontains=keywords[1]) |
         Q(title__icontains=keywords[2]) |
         Q(description__icontains=keywords[0])
-    ).distinct()[:6]
+    ).distinct())
+    
+    # Randomize order
+    random.shuffle(seasonal_db_recipes)
+    seasonal_db_recipes = seasonal_db_recipes[:6]
     
     # If we have enough DB recipes, use them
     if len(seasonal_db_recipes) >= 6:
@@ -69,29 +61,21 @@ def get_seasonal_recommendations(request):
         data = serializer.data
         for item in data:
             item['is_ai_generated'] = False
-        
-        # Cache for 1 hour
-        cache.set(cache_key, data, timeout=3600)
         return Response(data)
     
-    db_recipes_list = list(seasonal_db_recipes)
+    db_recipes_list = seasonal_db_recipes
     db_count = len(db_recipes_list)
     needed_count = 6 - db_count
     
     # If no AI client, just return DB recipes
     if not groq_client:
         all_recipes = list(Recipe.objects.all())
-        if len(all_recipes) >= 6:
-            random.shuffle(all_recipes)
-            selected = all_recipes[:6]
-        else:
-            selected = all_recipes
+        random.shuffle(all_recipes)
+        selected = all_recipes[:6]
         serializer = RecipeListSerializer(selected, many=True, context={'request': request})
         data = serializer.data
         for item in data:
             item['is_ai_generated'] = False
-        
-        cache.set(cache_key, data, timeout=3600)
         return Response(data)
     
     # Generate AI recipes for remaining slots
@@ -102,6 +86,8 @@ def get_seasonal_recommendations(request):
     Do not add any text before or after the JSON."""
     
     try:
+        import json
+        import re
         completion = groq_client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[
@@ -112,13 +98,11 @@ def get_seasonal_recommendations(request):
             max_tokens=500
         )
         
-        import json
-        import re
         response_text = completion.choices[0].message.content.strip()
         json_match = re.search(r'\[.*\]', response_text, re.DOTALL)
         
         if not json_match:
-            # Fallback to default recipes
+            # Fallback to random recipes
             all_recipes = list(Recipe.objects.all())
             random.shuffle(all_recipes)
             final_recipes = all_recipes[:6]
@@ -126,7 +110,6 @@ def get_seasonal_recommendations(request):
             data = serializer.data
             for item in data:
                 item['is_ai_generated'] = False
-            cache.set(cache_key, data, timeout=3600)
             return Response(data)
         
         ai_recipes = json.loads(json_match.group())
@@ -142,7 +125,7 @@ def get_seasonal_recommendations(request):
                 recipe_data['is_ai_generated'] = False
                 formatted_ai_recipes.append(recipe_data)
             else:
-                # Check cache for AI generated recipe
+                # Check for AI generated recipe
                 cached_ai = AIGeneratedRecipe.objects.filter(title__iexact=item['title']).first()
                 image_url = cached_ai.image_url if cached_ai else get_ai_generated_image(item['title'])
                 
@@ -169,23 +152,18 @@ def get_seasonal_recommendations(request):
         combined = combined[:6]
         random.shuffle(combined)
         
-        cache.set(cache_key, combined, timeout=3600)
         return Response(combined)
         
     except Exception as e:
         print(f"Seasonal AI error: {e}")
+        # Fallback to random recipes
         all_recipes = list(Recipe.objects.all())
-        if len(all_recipes) >= 6:
-            random.shuffle(all_recipes)
-            selected = all_recipes[:6]
-        else:
-            selected = all_recipes
+        random.shuffle(all_recipes)
+        selected = all_recipes[:6]
         serializer = RecipeListSerializer(selected, many=True, context={'request': request})
         data = serializer.data
         for item in data:
             item['is_ai_generated'] = False
-        
-        cache.set(cache_key, data, timeout=3600)
         return Response(data)
 
 
@@ -193,22 +171,18 @@ def get_seasonal_recommendations(request):
 @permission_classes([IsAuthenticated])
 def get_dashboard_recipes(request):
     """
-    Get random recipes for dashboard - Fixed order to prevent changes on render
+    Get random recipes for dashboard - Fresh on every request
     """
-    cache_key = f"dashboard_recipes_{request.user.id}"
-   
-    cached_recipes = cache.get(cache_key)
-    if cached_recipes is not None:
-        return Response(cached_recipes)
-    
-    recipes = Recipe.objects.all().order_by('-id')[:12]
+    # ✅ Remove cache - always get fresh random recipes
+    recipes = list(Recipe.objects.all())
+    random.shuffle(recipes)
+    recipes = recipes[:12]
     
     serializer = RecipeListSerializer(recipes, many=True, context={'request': request})
     data = serializer.data
-   
+    
+    # Add is_ai_generated flag
     for item in data:
         item['is_ai_generated'] = False
-
-    cache.set(cache_key, data, timeout=1800)
     
     return Response(data)
