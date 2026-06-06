@@ -1,4 +1,3 @@
-// context/BookmarkContext.jsx
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 
@@ -54,8 +53,6 @@ export function BookmarkProvider({ children }) {
       !recipe.is_ai_generated
     );
   };
-
-  // ✅ FIXED: toggleBookmark function
   const toggleBookmark = async (id, title, isAI = false, recipeData = {}) => {
     const token = localStorage.getItem("ingrido_token");
     if (!token) {
@@ -63,8 +60,6 @@ export function BookmarkProvider({ children }) {
       window.location.href = "/login";
       return false;
     }
-
-    // ✅ Better validation
     if ((!id || id === 'undefined') && !title) {
       console.error("No valid id or title provided", { id, title });
       return false;
@@ -73,8 +68,6 @@ export function BookmarkProvider({ children }) {
     let actualIsAI = isAI;
     let actualId = id;
     let actualTitle = title;
-
-    // ✅ Seasonal/AI recipe detection
     const isSeasonalOrAI = (id && typeof id === 'string' && 
       (id.includes("seasonal") || id.startsWith("ai-"))) || isAI;
     
@@ -89,8 +82,6 @@ export function BookmarkProvider({ children }) {
       actualTitle = recipeTitle;
       console.log("🔄 AI/Seasonal recipe detected! Using title:", recipeTitle);
     }
-
-    // ✅ Handle undefined ID
     if (actualId === 'undefined' || actualId === null || actualId === undefined) {
       if (actualTitle) {
         actualId = actualTitle;

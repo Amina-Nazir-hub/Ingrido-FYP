@@ -1,4 +1,3 @@
-// Features/recipe/components/RecipeHeader.jsx
 import { useState } from "react";
 import { ArrowLeft, Bookmark } from "lucide-react";
 import { useBookmark } from "../../../context/BookmarkContext";
@@ -6,11 +5,9 @@ import { useBookmark } from "../../../context/BookmarkContext";
 const RecipeHeader = ({ title, id, isAiGenerated, onBack }) => {
   const { isBookmarked, toggleBookmark } = useBookmark();
   const [isLoading, setIsLoading] = useState(false);
-  
-  // ✅ Debug log to see what's coming in
+
   console.log("RecipeHeader received:", { title, id, isAiGenerated });
-  
-  // ✅ Make sure we have valid id
+
   const validId = id || (isAiGenerated ? title : null);
   
   if (!validId && !isAiGenerated) {
