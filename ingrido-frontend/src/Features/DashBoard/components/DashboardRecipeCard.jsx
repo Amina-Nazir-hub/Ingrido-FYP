@@ -1,4 +1,3 @@
-// Features/DashBoard/components/DashboardRecipeCard.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Flame, Clock, Bookmark, Eye, Drumstick } from "lucide-react";
@@ -16,17 +15,13 @@ const DashboardRecipeCard = ({
   is_saved = false,
   is_ai_generated = false,
   onBookmarkToggle,
-  forceAI,  // ✅ NEW: Optional prop to force AI treatment
+  forceAI,  
 }) => {
   const navigate = useNavigate();
   const { isBookmarked, toggleBookmark } = useBookmark();
   const [loading, setLoading] = useState(false);
   const displayTitle = title || meal || "Tasty Recipe";
-
-  // ✅ FIX: Use forceAI if provided, otherwise use original is_ai_generated flag
   const isAI = forceAI !== undefined ? forceAI : is_ai_generated;
-
-  // ✅ For AI recipes use title, for regular use id
   const bookmarkIdentifier = isAI ? displayTitle : id;
   
   const isSaved = isBookmarked(bookmarkIdentifier, displayTitle, isAI);
@@ -57,16 +52,15 @@ const DashboardRecipeCard = ({
     setLoading(true);
 
     try {
-      // ✅ Pass correct isAI value to parent
       if (onBookmarkToggle) {
         await onBookmarkToggle(
-          id,                    // recipeId
-          displayTitle,          // recipeTitle
-          isAI,                  // isAI - respect the calculated value
-          isSaved                // currentIsSaved status
+          id,                   
+          displayTitle,          
+          isAI,                  
+          isSaved                
         );
       } else {
-        // Fallback agar parent handler nahi hai
+  
         const newStatus = await toggleBookmark(
           bookmarkIdentifier,
           displayTitle,

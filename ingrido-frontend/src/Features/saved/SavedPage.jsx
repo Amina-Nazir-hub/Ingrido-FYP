@@ -5,11 +5,11 @@ import SavedStats from "./components/SavedStats";
 import SavedRecipeCard from "./components/SavedRecipeCard";
 import LoadingState from "./components/LoadingState";
 import EmptySavedState from "./components/EmptySavedState";
-import { useBookmark } from "../../context/BookmarkContext"; // ✅ Import useBookmark
+import { useBookmark } from "../../context/BookmarkContext"; 
 
 const SavedPage = () => {
   const navigate = useNavigate();  
-  const { bookmarkedRecipes, loading, toggleBookmark, refreshBookmarks } = useBookmark(); // ✅ Use bookmark context
+  const { bookmarkedRecipes, loading, toggleBookmark, refreshBookmarks } = useBookmark();
 
   const handleUnsave = async (identifier, isAiGenerated) => {
     await toggleBookmark(identifier, identifier, isAiGenerated);

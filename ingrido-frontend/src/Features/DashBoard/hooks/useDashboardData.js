@@ -15,8 +15,6 @@ export const useDashboardData = () => {
       const config = token ? { headers: { Authorization: `Token ${token}` } } : {};
       
       const res = await axios.get(API_ENDPOINTS.SEASONAL_RECIPES, config);
-      
-      // ✅ FIX: Mark all seasonal recipes as AI generated
       const processedRecipes = res.data.map(recipe => ({
         ...recipe,
         is_ai_generated: true

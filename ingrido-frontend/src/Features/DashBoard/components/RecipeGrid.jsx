@@ -22,7 +22,7 @@ const RecipeGrid = ({ items, title, onClear, onBookmarkToggle, forceAI }) => {
           <DashboardRecipeCard
             key={recipe.id || `dashboard-${index}`}
             {...recipe}
-            forceAI={forceAI}  // ✅ Pass forceAI to child
+            forceAI={forceAI} 
             onBookmarkToggle={(recipeId, recipeTitle, isAI, currentIsSaved) => 
               onBookmarkToggle(recipeId, recipeTitle, isAI, currentIsSaved)
             }
