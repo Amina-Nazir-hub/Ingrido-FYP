@@ -69,17 +69,23 @@ export function RecipeDetailPage() {
   }
 
   const displayTitle = recipe.title || recipe.meal || "Tasty Recipe";
+<<<<<<< HEAD
 
   // ✅ IMPORTANT FIX: Get the correct ID
   let recipeId = null;
   let isAIRecipe = isAiGenerated;
 
   // Check if it's AI recipe
+=======
+  let recipeId = null;
+  let isAIRecipe = isAiGenerated;
+  
+>>>>>>> origin/main
   if (isAiGenerated || (id && id.toString().startsWith("ai-")) || titleParam) {
     isAIRecipe = true;
-    recipeId = displayTitle; // Use title as ID for AI recipes
+    recipeId = displayTitle; 
   } else {
-    // For regular recipes, get numeric ID
+  
     recipeId = recipe.id || id;
   }
 
@@ -95,7 +101,11 @@ export function RecipeDetailPage() {
     <>
       <RecipeHeader
         title={displayTitle}
+<<<<<<< HEAD
         id={recipeId} // ✅ Pass correct ID (not undefined)
+=======
+        id={recipeId}  
+>>>>>>> origin/main
         isAiGenerated={isAIRecipe}
         onBack={() => navigate(-1)}
       />

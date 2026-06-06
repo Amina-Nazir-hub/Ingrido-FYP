@@ -1,7 +1,7 @@
 import { Trash2 } from "lucide-react";
 import DashboardRecipeCard from "./DashboardRecipeCard";
 
-const RecipeGrid = ({ items, title, onClear, onBookmarkToggle }) => {
+const RecipeGrid = ({ items, title, onClear, onBookmarkToggle, forceAI }) => {
   if (!items || items.length === 0) return null;
 
   return (
@@ -28,7 +28,10 @@ const RecipeGrid = ({ items, title, onClear, onBookmarkToggle }) => {
           <DashboardRecipeCard
             key={recipe.id || `dashboard-${index}`}
             {...recipe}
-            onBookmarkToggle={onBookmarkToggle}
+            forceAI={forceAI} 
+            onBookmarkToggle={(recipeId, recipeTitle, isAI, currentIsSaved) => 
+              onBookmarkToggle(recipeId, recipeTitle, isAI, currentIsSaved)
+            }
           />
         ))}
       </div>

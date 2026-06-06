@@ -26,7 +26,16 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = ['health_conditions', 'dietary_preferences', 'ai_bookmarks']
 
 class SavedRecipeSerializer(serializers.ModelSerializer):
+    recipe_title = serializers.CharField(source='recipe.title', read_only=True)
+    recipe_image = serializers.SerializerMethodField()
+    
     class Meta:
         model = SavedRecipe
-        fields = ['id', 'user', 'recipe', 'saved_at']
-        read_only_fields = ['id', 'user', 'saved_at']
+        fields = ['id', 'user', 'recipe', 'recipe_title', 'recipe_image', 'saved_at']
+    
+    def get_recipe_image(self, obj):
+        if obj.image_url:
+            return obj.image_url
+        if obj.recipe.image:
+            return obj.recipe.image.url
+        return None

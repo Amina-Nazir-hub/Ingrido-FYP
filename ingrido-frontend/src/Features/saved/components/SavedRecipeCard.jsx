@@ -8,10 +8,13 @@ import {
   Drumstick,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { BACKEND_URL, DEFAULT_IMAGE } from "../constants";
 
 const SavedRecipeCard = ({ recipe, onUnsave, isRemoving }) => {
   const navigate = useNavigate();
+
+  const [isRemovingLocal, setIsRemovingLocal] = useState(false);
 
   const recipeId = recipe.recipe_id || recipe.id;
   const recipeTitle = recipe.title || recipe.recipe_details?.title;
@@ -19,7 +22,6 @@ const SavedRecipeCard = ({ recipe, onUnsave, isRemoving }) => {
     recipe.is_ai_generated ||
     (recipeId && recipeId.toString().startsWith("ai-"));
 
-  // Get image URL
   const getImageUrl = () => {
     let image = recipe.image || recipe.recipe_details?.image;
     if (image) {
@@ -45,17 +47,25 @@ const SavedRecipeCard = ({ recipe, onUnsave, isRemoving }) => {
     }
   };
 
-  const handleUnsaveClick = () => {
+  // Instant unsave - No page reload
+  const handleUnsaveClick = async () => {
+    setIsRemovingLocal(true);
+
     if (isAiGenerated) {
-      onUnsave(recipeTitle, true);
+      await onUnsave(recipeTitle, true);
     } else {
-      onUnsave(recipeId, false);
+      await onUnsave(recipeId, false);
     }
   };
 
   return (
     <article className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg relative">
-      {/* Image Section */}
+      {isAiGenerated && (
+        <div className="absolute top-3 left-3 z-10 bg-purple-600 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md shadow-md flex items-center gap-1">
+          <Sparkles size={10} /> AI Generated
+        </div>
+      )}
+
       <div className="aspect-video w-full overflow-hidden bg-muted relative">
         <img
           src={imageUrl}
@@ -68,7 +78,6 @@ const SavedRecipeCard = ({ recipe, onUnsave, isRemoving }) => {
         />
       </div>
 
-      {/* Content Section */}
       <div className="space-y-3 p-5">
         <div className="flex justify-between items-start">
           <h3 className="text-lg font-bold text-foreground line-clamp-1">
@@ -87,7 +96,6 @@ const SavedRecipeCard = ({ recipe, onUnsave, isRemoving }) => {
           )}
         </div>
 
-        {/* Nutrition Grid - Same as Dashboard/DishList cards */}
         <div className="grid grid-cols-3 gap-2 text-xs">
           <div className="flex flex-col items-center rounded-md bg-primary p-2">
             <Flame className="mb-1 h-4 w-4 text-amber-500" />
@@ -114,15 +122,14 @@ const SavedRecipeCard = ({ recipe, onUnsave, isRemoving }) => {
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex items-center justify-end gap-1 border-t border-border pt-3">
           <button
             onClick={handleUnsaveClick}
-            disabled={isRemoving}
-            className="rounded-md p-2 text-primary hover:bg-primary hover:text-primary-foreground transition-colors disabled:opacity-50"
+            disabled={isRemovingLocal || isRemoving}
+            className="rounded-md p-2 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50 cursor-pointer"
             title="Remove from saved"
           >
-            {isRemoving ? (
+            {isRemovingLocal || isRemoving ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
               <Bookmark className="h-5 w-5 fill-current" />
@@ -131,7 +138,7 @@ const SavedRecipeCard = ({ recipe, onUnsave, isRemoving }) => {
 
           <button
             onClick={handleViewDetail}
-            className="rounded-md p-2 text-primary hover:bg-primary hover:text-primary-foreground transition-colors"
+            className="rounded-md p-2 text-primary hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
             title="View Recipe"
           >
             <Eye className="h-5 w-5" />
