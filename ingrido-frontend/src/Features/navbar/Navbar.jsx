@@ -5,18 +5,26 @@ import { MobileMenu } from "./components/MobileMenu";
 import { MobileMenuButton } from "./components/MobileMenuButton";
 
 export function Navbar() {
-  const { isLoggedIn, loading, isOpen, toggleMenu, closeMenu, logout, userInfo } = useNavbar();
+  const {
+    isLoggedIn,
+    loading,
+    isOpen,
+    toggleMenu,
+    closeMenu,
+    logout,
+    userInfo,
+  } = useNavbar();
 
   if (loading) {
-    return <header className="h-16 md:h-20 bg-card border-b" />;
+    return <header className="h-16 md:h-20 bg-primary border-b" />;
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-md border-b border-border/50 h-16 md:h-20 flex items-center">
+    <header className="fixed top-0 left-0 right-0 z-50 bg-primary backdrop-blur-md border-b border-border/50 h-16 md:h-20 flex items-center">
       <div className="container mx-auto px-4 flex items-center justify-between">
         <Logo />
 
-        <DesktopMenu 
+        <DesktopMenu
           isLoggedIn={isLoggedIn}
           displayLetter={userInfo.displayLetter}
           displayName={userInfo.firstName}
@@ -25,7 +33,7 @@ export function Navbar() {
         <MobileMenuButton isOpen={isOpen} onToggle={toggleMenu} />
       </div>
 
-      <MobileMenu 
+      <MobileMenu
         isOpen={isOpen}
         isLoggedIn={isLoggedIn}
         onClose={closeMenu}

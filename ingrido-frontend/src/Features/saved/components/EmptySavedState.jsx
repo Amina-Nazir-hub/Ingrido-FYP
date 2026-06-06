@@ -8,10 +8,10 @@ const EmptySavedState = () => {
       <Bookmark className="mx-auto h-12 w-12 text-muted-foreground/30 mb-4" />
       <p className="text-muted-foreground text-lg">No saved recipes yet.</p>
       <Link
-        to={ROUTES.CITY}
+        to={ROUTES.DASHBOARD}
         className="mt-4 inline-block text-primary font-bold hover:underline"
       >
-        Explore Cities & Save Recipes
+        Explore And Save Recipes!
       </Link>
     </div>
   );

@@ -6,7 +6,7 @@ const LoginFooter = () => {
       Don't have an account?{" "}
       <Link
         to="/register"
-        className="text-amber-600 dark:text-amber-500 font-bold hover:underline transition-colors"
+        className="text-primary font-bold hover:underline transition-colors"
       >
         Sign Up
       </Link>

@@ -50,14 +50,14 @@ const WelcomeHero = ({ name }) => {
     <section className="flex flex-col items-center justify-center w-full pt-20 pb-8 relative">
       <div className="w-full max-w-2xl text-center mb-6">
         <h2 className="text-lg font-medium text-white-500">Hello, {name}!</h2>
-        <h1 className="text-3xl md:text-4xl font-bold text-white">
+        <h1 className="text-3xl md:text-4xl font-bold">
           What are we cooking today?
         </h1>
       </div>
 
-      <div ref={dropdownRef} className="w-full max-w-lg relative z-50">
-        <div className="flex items-center bg-white border-2 border-gray-200 focus-within:border-primary transition-all rounded-full shadow-sm pr-2 pl-4">
-          <Search size={18} className="text-gray-400 mr-1" />
+      <div ref={dropdownRef} className="w-full max-w-lg relative z-10">
+        <div className="flex items-center bg-white border-2 border-gray-200 focus-within:border-primary transition-all rounded-full shadow-sm pr-2 pl-4 h-14">
+          <Search size={18} className="text-gray-400 mr-1 shrink-0" />
           <input
             type="text"
             value={query}
@@ -68,25 +68,28 @@ const WelcomeHero = ({ name }) => {
             onFocus={() => setShowDropdown(true)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch(query)}
             placeholder="Search dish name, ingredient (e.g., Biryani, Chicken)..."
-            className="w-full px-2 h-12 text-black outline-none bg-transparent placeholder-gray-400 font-medium text-sm"
+            className="w-full px-2 text-black border-none outline-none focus:outline-none focus:ring-0 bg-transparent placeholder-gray-400 font-medium text-sm m-0 self-stretch"
           />
           <button
             onClick={() => handleSearch(query)}
-            className="bg-primary text-white p-2.5 rounded-full hover:bg-opacity-90 transition-all shadow-sm"
+            className="bg-primary text-white p-2.5 rounded-full hover:bg-opacity-90 transition-all shadow-sm flex items-center justify-center shrink-0 cursor-pointer"
           >
             <Search size={18} />
           </button>
         </div>
 
         {showDropdown && (filteredHistory.length > 0 || hasNewSearch) && (
-          <div className="absolute top-14 left-0 w-full bg-white border rounded-2xl shadow-xl mt-1 overflow-hidden py-2 border-gray-100 animate-fadeIn">
+          <div className="absolute top-16 left-0 w-full bg-white border rounded-2xl shadow-xl mt-1 overflow-hidden py-2 border-gray-100 animate-fadeIn">
             {hasNewSearch && (
               <div
                 onClick={() => handleSearch(query)}
                 className="w-full flex items-center gap-3 px-5 py-3 hover:bg-purple-50 cursor-pointer text-sm font-bold text-purple-700 transition-colors border-b border-gray-50"
               >
-                <Sparkles size={15} className="text-purple-500 animate-pulse" />
-                <span>
+                <Sparkles
+                  size={15}
+                  className="text-purple-500 animate-pulse shrink-0"
+                />
+                <span className="truncate">
                   Ask AI to generate recipe for:{" "}
                   <span className="italic">"{query}"</span>
                 </span>
@@ -99,13 +102,13 @@ const WelcomeHero = ({ name }) => {
                 onClick={() => handleSearch(item)}
                 className="w-full flex items-center justify-between px-5 py-3 hover:bg-gray-50 cursor-pointer text-sm font-bold text-gray-700 transition-colors"
               >
-                <div className="flex items-center gap-3">
-                  <Clock size={15} className="text-gray-400" />
-                  <span>{item}</span>
+                <div className="flex items-center gap-3 min-w-0 pr-2">
+                  <Clock size={15} className="text-gray-400 shrink-0" />
+                  <span className="truncate">{item}</span>
                 </div>
                 <button
                   onClick={(e) => removeHistoryItem(e, item)}
-                  className="p-1 text-gray-400 hover:text-red-500 rounded-full hover:bg-gray-100 transition-all"
+                  className="p-1 text-gray-400 hover:text-red-500 rounded-full hover:bg-gray-100 transition-all shrink-0 cursor-pointer"
                   title="Remove search"
                 >
                   <X size={14} />

@@ -2,7 +2,8 @@ export const BACKEND_URL = "http://127.0.0.1:8000";
 
 export const API_ENDPOINTS = {
   SAVED_RECIPES: `${BACKEND_URL}/api/account/saved/`,
-  BOOKMARK_TOGGLE: (recipeId) => `${BACKEND_URL}/api/account/recipes/${recipeId}/bookmark/`,
+  BOOKMARK_TOGGLE: (recipeId) =>
+    `${BACKEND_URL}/api/account/recipes/${recipeId}/bookmark/`,
 };
 
 export const STORAGE_KEYS = {
@@ -12,7 +13,8 @@ export const STORAGE_KEYS = {
 export const ROUTES = {
   LOGIN: "/login",
   RECIPE_DETAIL: (id) => `/recipe/${id}`,
-  CITY: "/city",
+  DASHBOARD: "/dashboard",
 };
 
-export const DEFAULT_IMAGE = "https://placehold.co/800x500/3f3f46/ffffff?text=Recipe";
+export const DEFAULT_IMAGE =
+  "https://placehold.co/800x500/3f3f46/ffffff?text=Recipe";

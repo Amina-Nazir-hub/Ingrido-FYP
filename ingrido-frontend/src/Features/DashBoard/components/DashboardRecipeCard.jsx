@@ -148,28 +148,28 @@ const DashboardRecipeCard = ({
         </h3>
 
         <div className="grid grid-cols-3 gap-2 text-xs">
-          <div className="flex flex-col items-center rounded-md bg-secondary p-2">
-            <Flame className="mb-1 h-4 w-4 text-orange-500" />
-            <span className="font-semibold text-foreground">
+          <div className="flex flex-col items-center rounded-md bg-primary p-2">
+            <Flame className="mb-1 h-4 w-4  text-amber-500" />
+            <span className="font-semibold text-primary-foreground">
               {kcal || "350"}
             </span>
-            <span className="text-muted-foreground">kcal</span>
+            <span className="text-primary-foreground">kcal</span>
           </div>
 
-          <div className="flex flex-col items-center rounded-md bg-secondary p-2">
+          <div className="flex flex-col items-center rounded-md bg-primary p-2">
             <Clock className="mb-1 h-4 w-4 text-blue-500" />
-            <span className="font-semibold text-foreground">
+            <span className="font-semibold text-primary-foreground">
               {prep_time || "25"}
             </span>
-            <span className="text-muted-foreground">mins</span>
+            <span className="text-primary-foreground">mins</span>
           </div>
 
-          <div className="flex flex-col items-center rounded-md bg-secondary p-2">
+          <div className="flex flex-col items-center rounded-md bg-primary p-2">
             <Drumstick className="mb-1 h-4 w-4 text-green-600" />
-            <span className="font-semibold text-foreground">
+            <span className="font-semibold text-primary-foreground">
               {protein || "20g"}
             </span>
-            <span className="text-muted-foreground">protein</span>
+            <span className="text-primary-foreground">protein</span>
           </div>
         </div>
 
@@ -180,7 +180,7 @@ const DashboardRecipeCard = ({
             className={`rounded-md p-2 transition ${
               isSaved
                 ? "text-amber-600 bg-amber-50"
-                : "text-muted-foreground hover:bg-secondary hover:text-amber-600"
+                : "text-primary hover:bg-primary  hover:text-primary-foreground transition"
             }`}
             title={isSaved ? "Remove from saved" : "Save Recipe"}
           >
@@ -189,10 +189,10 @@ const DashboardRecipeCard = ({
 
           <button
             onClick={handleViewDetail}
-            className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground transition"
+            className="rounded-md p-2 text-primary hover:bg-primary hover:text-primary-foreground transition"
             title="View Details"
           >
-            <Eye className="h-5 w-5" />
+            <Eye className="text/90" />
           </button>
         </div>
       </div>

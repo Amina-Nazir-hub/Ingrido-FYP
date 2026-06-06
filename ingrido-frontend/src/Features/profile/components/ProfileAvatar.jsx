@@ -12,4 +12,4 @@ export const ProfileAvatar = ({ initial }) => {
   );
 };
 
-export default  ProfileAvatar;
+export default ProfileAvatar;

@@ -4,8 +4,8 @@ const RegisterHeader = () => {
       <h1 className="text-4xl font-bold mb-3 font-display text-foreground tracking-tight">
         Create Account
       </h1>
-      <p className="text-muted-foreground text-sm">
-        Join Ingrido to start your personalized nutrition plan.
+      <p className="text-muted-foreground text-l">
+        Join Ingrido to start your personalized healthy food journey.
       </p>
     </div>
   );

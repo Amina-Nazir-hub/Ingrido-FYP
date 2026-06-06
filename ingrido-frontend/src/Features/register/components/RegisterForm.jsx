@@ -29,7 +29,7 @@ const RegisterForm = ({
             name="name"
             value={formData.name}
             onChange={onInputChange}
-            className="w-full rounded-md border border-input bg-background px-4 py-3 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+            className="w-full rounded-md border border-input bg-primary-foreground px-4 py-3 outline-none focus:ring-2 focus:ring-primary/20 transition-all text-primary-foreground placeholder-muted-foreground"
             placeholder="Enter your full name"
             required
             disabled={isLoading}
@@ -40,12 +40,13 @@ const RegisterForm = ({
           <label className="text-sm font-semibold flex items-center gap-2 text-foreground">
             <Mail className="h-4 w-4 text-secondary" /> Email Address
           </label>
+          {/* Changed bg-background to bg-primary-foreground */}
           <input
             type="email"
             name="email"
             value={formData.email}
             onChange={onInputChange}
-            className="w-full rounded-md border border-input bg-background px-4 py-3 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+            className="w-full rounded-md border border-input bg-primary-foreground px-4 py-3 outline-none focus:ring-2 focus:ring-primary/20 focus:text-foreground transition-all text-foreground placeholder-muted-foreground"
             placeholder="name@example.com"
             required
             disabled={isLoading}
@@ -57,6 +58,7 @@ const RegisterForm = ({
             <Lock className="h-4 w-4 text-secondary" /> Password
           </label>
           <div className="relative">
+            {/* Changed bg-background to bg-primary-foreground */}
             <input
               type={showPassword ? "text" : "password"}
               name="password"
@@ -64,7 +66,7 @@ const RegisterForm = ({
               onChange={onInputChange}
               onFocus={() => setIsPasswordFocused(true)}
               onBlur={() => setIsPasswordFocused(false)}
-              className="w-full rounded-md border border-input bg-background px-4 py-3 pr-12 outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+              className="w-full rounded-md border border-input bg-primary-foreground px-4 py-3 pr-12 outline-none focus:ring-2 focus:ring-primary/20 transition-all text-foreground placeholder-muted-foreground"
               placeholder="••••••••"
               required
               disabled={isLoading}
@@ -72,19 +74,22 @@ const RegisterForm = ({
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
-          <PasswordStrength password={formData.password} isFocused={isPasswordFocused} />
+          <PasswordStrength
+            password={formData.password}
+            isFocused={isPasswordFocused}
+          />
         </div>
       </div>
 
       <button
         type="submit"
         disabled={!isPasswordValid || isLoading}
-        className={`w-full font-bold py-4 px-6 rounded-lg flex items-center justify-center gap-3 text-lg mt-10 transition-all 
+        className={`w-full font-bold py-4 px-6 rounded-lg flex items-center justify-center gap-3 text-lg mt-10 transition-all cursor-pointer
           ${
             isPasswordValid && !isLoading
               ? "bg-primary hover:bg-primary/90 text-white shadow-xl active:scale-[0.98]"
