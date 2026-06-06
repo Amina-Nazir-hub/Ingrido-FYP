@@ -255,7 +255,6 @@
     background-color: hsl(var(--muted-foreground) / 0.5);
   }
 
-  /* Firefox scrollbar */
   * {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--muted-foreground) / 0.3) hsl(var(--muted));

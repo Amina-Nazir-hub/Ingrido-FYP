@@ -1,5 +1,5 @@
-# apps/dashboard/views.py
 import random
+import hashlib
 from datetime import datetime
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -25,66 +25,122 @@ def get_current_season():
         return "autumn"
 
 
+def get_session_seed(request):
+    """
+    Har user/session ke liye ek consistent seed banao.
+    Same session = same seed = same card order.
+    Sirf F5 (reload) par seed badlega kyunke frontend
+    session storage clear karta hai aur naya request bhejta hai
+    with a refresh flag.
+    
+    Seed formula: session_key + current_date (din ke andar same rehta hai)
+    """
+    session_key = request.session.session_key
+
+    # Agar session nahi hai (anonymous user), to create karo
+    if not session_key:
+        request.session.create()
+        session_key = request.session.session_key
+
+    today = datetime.now().strftime("%Y-%m-%d")
+    raw = f"{session_key}-{today}"
+    # Integer seed chahiye random.seed() ke liye
+    seed = int(hashlib.md5(raw.encode()).hexdigest(), 16) % (2**32)
+    return seed
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_seasonal_recommendations(request):
     """
-    Get seasonal recommendations - Fresh on every request (no cache)
+    Get seasonal recommendations.
+    
+    - Normal navigation: same session = same seed = same cards
+    - F5 / force refresh: frontend 'refresh=true' bhejta hai
+      to naya seed generate hota hai (date + random suffix)
     """
     current_season = get_current_season()
     groq_client = get_groq_client()
-    
+
+    # FIX: force_refresh=true aane par naya seed banao, warna session seed use karo
+    force_refresh = request.query_params.get("refresh") == "true"
+
+    if force_refresh:
+        # F5 ya manual refresh — naya random seed (session se independent)
+        seed = random.randint(0, 2**32)
+        # Session mein save karo taake is session ka naya consistent seed ho
+        request.session["dash_seed"] = seed
+        request.session.modified = True
+    else:
+        # Pehle check karo ke session mein seed pehle se hai
+        seed = request.session.get("dash_seed")
+        if seed is None:
+            # Pehli baar — date+session se stable seed banao
+            seed = get_session_seed(request)
+            request.session["dash_seed"] = seed
+            request.session.modified = True
+
+    rng = random.Random(seed)  # Global random nahi, local instance use karo
+
     seasonal_keywords = {
         'winter': ['nihari', 'haleem', 'soup', 'karahi', 'korma', 'saag', 'paye', 'chai'],
         'summer': ['chaat', 'lassi', 'kheer', 'mango', 'sherbet', 'raita', 'cooling', 'light'],
         'spring': ['fresh', 'peas', 'spinach', 'light curry', 'barbecue', 'kebab'],
         'autumn': ['pumpkin', 'spiced', 'roasted', 'dry curry', 'keema']
     }
-    
+
     keywords = seasonal_keywords.get(current_season, ['pakistani', 'recipe'])
-    
-    # Get seasonal recipes from database - NO CACHE, random order
+
     seasonal_db_recipes = list(Recipe.objects.filter(
         Q(title__icontains=keywords[0]) |
         Q(title__icontains=keywords[1]) |
         Q(title__icontains=keywords[2]) |
         Q(description__icontains=keywords[0])
     ).distinct())
-    
-    # Randomize order
-    random.shuffle(seasonal_db_recipes)
+
+    # FIX: random.shuffle ki jagah rng.shuffle — seed-based consistent order
+    rng.shuffle(seasonal_db_recipes)
     seasonal_db_recipes = seasonal_db_recipes[:6]
-    
-    # If we have enough DB recipes, use them
+
     if len(seasonal_db_recipes) >= 6:
         serializer = RecipeListSerializer(seasonal_db_recipes, many=True, context={'request': request})
         data = serializer.data
         for item in data:
             item['is_ai_generated'] = False
         return Response(data)
-    
+
     db_recipes_list = seasonal_db_recipes
     db_count = len(db_recipes_list)
     needed_count = 6 - db_count
-    
-    # If no AI client, just return DB recipes
+
     if not groq_client:
         all_recipes = list(Recipe.objects.all())
-        random.shuffle(all_recipes)
+        rng.shuffle(all_recipes)  # FIX: rng.shuffle
         selected = all_recipes[:6]
         serializer = RecipeListSerializer(selected, many=True, context={'request': request})
         data = serializer.data
         for item in data:
             item['is_ai_generated'] = False
         return Response(data)
-    
-    # Generate AI recipes for remaining slots
-    prompt = f"""Current season: {current_season}. Suggest {needed_count} Pakistani {current_season} dishes with drinks. 
-    Return ONLY valid JSON array with EXACTLY {needed_count} items: 
-    [{{"title":"dish name","kcal":350,"prep_time":30}}]
-    Make sure title is a specific dish name like "Chicken Karahi", "Beef Nihari", etc.
-    Do not add any text before or after the JSON."""
-    
+
+    prompt = f"""Current season: {current_season}. Generate EXACTLY {needed_count} distinct Pakistani dishes tailored for this season.
+        The final menu MUST follow this strict categorization inspired by top culinary channels like Food Fusion and SuperChef (creative, appealing, and realistic):
+        
+        1. **1 Snack Item**: Something catchy and creative (e.g., Bread Roll variety, Fusion Chaat, or unique Pakora/Samosa twist).
+        2. **1 Dessert Item**: A mouthwatering Pakistani sweet dish suited for {current_season} (e.g., Shahi Tukray twist, Mango Kheer, or flavored Halwa).
+        3. **1 Daal/Chana Component**: An authentic, rich legume dish (e.g., Dhaba Style Daal Chana, Chana Chaat variation, or Murgh Cholay).
+        4. **1 Traditional Drink**: A refreshing or comforting beverage (e.g., Mint Margarita variation, Almond Lassi, or Special Doodh Patti/Kashmiri Chai depending on season).
+        5. **1 Meat Main Course**: A premium chicken, beef, or mutton dish with high presentation value (e.g., White Karahi, Koyla Karahi, or Mughlai Korma).
+        6. **1 Vegetable Main Course**: A flavorful, realistic veggie delight (e.g., Achari Aloo Baingan, Sabzi Jalfrezi, or Paneer Kundan Kaliyan).
+
+        STRICT REPETITION RULES:
+        - Never use generic names like "Boiled Rice" or "Plain Daal". Use commercial, appetizing titles.
+        - Ensure every single recipe belongs to its designated category without overlapping flavor profiles.
+        
+        Return ONLY a valid JSON array with EXACTLY {needed_count} items in this exact schema: 
+        [{{"title":"Appetizing Dish Name","kcal":380,"prep_time":25}}]
+        Do not include any chat, markdown headers, or wrapper text outside the JSON block."""
+
     try:
         import json
         import re
@@ -97,40 +153,38 @@ def get_seasonal_recommendations(request):
             temperature=0.7,
             max_tokens=500
         )
-        
+
         response_text = completion.choices[0].message.content.strip()
         json_match = re.search(r'\[.*\]', response_text, re.DOTALL)
-        
+
         if not json_match:
-            # Fallback to random recipes
             all_recipes = list(Recipe.objects.all())
-            random.shuffle(all_recipes)
+            rng.shuffle(all_recipes)  # FIX: rng.shuffle
             final_recipes = all_recipes[:6]
             serializer = RecipeListSerializer(final_recipes, many=True, context={'request': request})
             data = serializer.data
             for item in data:
                 item['is_ai_generated'] = False
             return Response(data)
-        
+
         ai_recipes = json.loads(json_match.group())
-        
+
         formatted_ai_recipes = []
         for idx, item in enumerate(ai_recipes):
-            # Check if recipe already exists in DB
             db_match = Recipe.objects.filter(title__iexact=item['title']).first()
-            
+
             if db_match:
                 serializer = RecipeListSerializer(db_match, context={'request': request})
                 recipe_data = serializer.data
                 recipe_data['is_ai_generated'] = False
                 formatted_ai_recipes.append(recipe_data)
             else:
-                # Check for AI generated recipe
                 cached_ai = AIGeneratedRecipe.objects.filter(title__iexact=item['title']).first()
                 image_url = cached_ai.image_url if cached_ai else get_ai_generated_image(item['title'])
-                
+
                 formatted_ai_recipes.append({
-                    'id': f"ai-seasonal-{idx}-{random.randint(1000, 9999)}",
+                    # FIX: random.randint ki jagah rng.randint — seed-based consistent ID
+                    'id': f"ai-seasonal-{idx}-{rng.randint(1000, 9999)}",
                     'title': item['title'],
                     'image': image_url,
                     'prep_time': int(item.get('prep_time', 30)),
@@ -139,26 +193,24 @@ def get_seasonal_recommendations(request):
                     'is_ai_generated': True,
                     'is_saved': False
                 })
-        
-        # Combine DB and AI recipes
+
         db_serialized = []
         for recipe in db_recipes_list:
             serializer = RecipeListSerializer(recipe, context={'request': request})
             data = serializer.data
             data['is_ai_generated'] = False
             db_serialized.append(data)
-        
+
         combined = db_serialized + formatted_ai_recipes
         combined = combined[:6]
-        random.shuffle(combined)
-        
+        rng.shuffle(combined)  # FIX: rng.shuffle
+
         return Response(combined)
-        
+
     except Exception as e:
         print(f"Seasonal AI error: {e}")
-        # Fallback to random recipes
         all_recipes = list(Recipe.objects.all())
-        random.shuffle(all_recipes)
+        rng.shuffle(all_recipes)  # FIX: rng.shuffle
         selected = all_recipes[:6]
         serializer = RecipeListSerializer(selected, many=True, context={'request': request})
         data = serializer.data
@@ -171,18 +223,21 @@ def get_seasonal_recommendations(request):
 @permission_classes([IsAuthenticated])
 def get_dashboard_recipes(request):
     """
-    Get random recipes for dashboard - Fresh on every request
+    Get random recipes for dashboard.
+    Same session = same order. F5 = naya order.
     """
-    # ✅ Remove cache - always get fresh random recipes
+    # Session seed use karo yahan bhi
+    seed = request.session.get("dash_seed") or get_session_seed(request)
+    rng = random.Random(seed)
+
     recipes = list(Recipe.objects.all())
-    random.shuffle(recipes)
+    rng.shuffle(recipes)  # FIX: rng.shuffle
     recipes = recipes[:12]
-    
+
     serializer = RecipeListSerializer(recipes, many=True, context={'request': request})
     data = serializer.data
-    
-    # Add is_ai_generated flag
+
     for item in data:
         item['is_ai_generated'] = False
-    
+
     return Response(data)

@@ -1,4 +1,4 @@
-// recipe/RecipeDetailPage.jsx
+// Features/recipe/RecipeDetailPage.jsx
 import React from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import RecipeHeader from "./components/RecipeHeader";
@@ -11,7 +11,6 @@ import AISubstitute from "./components/AISubstitute";
 import LoadingState from "./components/LoadingState";
 import NotFoundState from "./components/NotFoundState";
 import { useRecipeDetail } from "./hooks/useRecipeDetail";
-import { useRecipeSave } from "./hooks/useRecipeSave";
 import { useAISubstitute } from "./hooks/useAISubstitute";
 import { AlertCircle, RefreshCw } from "lucide-react";
 
@@ -22,7 +21,6 @@ export function RecipeDetailPage() {
   const titleParam = searchParams.get("title");
   
   const { recipe, loading, isAiGenerated, error, retry } = useRecipeDetail(id, titleParam);
-  const { isSaved, handleSave } = useRecipeSave(recipe, id, isAiGenerated);
   const {
     ingredientSearch,
     setIngredientSearch,
@@ -35,7 +33,6 @@ export function RecipeDetailPage() {
     return <LoadingState />;
   }
 
-  // ✅ Show error with retry button
   if (error || !recipe) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -67,13 +64,34 @@ export function RecipeDetailPage() {
   }
 
   const displayTitle = recipe.title || recipe.meal || "Tasty Recipe";
+  
+  // ✅ IMPORTANT FIX: Get the correct ID
+  let recipeId = null;
+  let isAIRecipe = isAiGenerated;
+  
+  // Check if it's AI recipe
+  if (isAiGenerated || (id && id.toString().startsWith("ai-")) || titleParam) {
+    isAIRecipe = true;
+    recipeId = displayTitle; // Use title as ID for AI recipes
+  } else {
+    // For regular recipes, get numeric ID
+    recipeId = recipe.id || id;
+  }
+  
+  console.log("RecipeDetailPage - Passing to Header:", { 
+    recipeId, 
+    displayTitle, 
+    isAIRecipe,
+    originalId: id,
+    recipeIdFromData: recipe.id 
+  });
 
   return (
     <>
       <RecipeHeader
         title={displayTitle}
-        isSaved={isSaved}
-        onSave={handleSave}
+        id={recipeId}  // ✅ Pass correct ID (not undefined)
+        isAiGenerated={isAIRecipe}
         onBack={() => navigate(-1)}
       />
 
@@ -81,7 +99,7 @@ export function RecipeDetailPage() {
         <RecipeMedia recipe={recipe} displayTitle={displayTitle} />
         
         <div className="space-y-6">
-          <RecipeInfo recipe={recipe} isAiGenerated={isAiGenerated} />
+          <RecipeInfo recipe={recipe} isAiGenerated={isAIRecipe} />
           <RecipeDescription recipe={recipe} displayTitle={displayTitle} />
         </div>
       </section>

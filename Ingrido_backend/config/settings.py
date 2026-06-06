@@ -23,7 +23,8 @@ INSTALLED_APPS = [
     'apps.recipes',
     'apps.dashboard',
     'apps.meal_planner',
-    'apps.common'
+    'apps.common',
+    'apps.cities',  # ← Add this line
 ]
 
 MIDDLEWARE = [
