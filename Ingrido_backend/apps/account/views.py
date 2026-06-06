@@ -6,10 +6,12 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
+from urllib.parse import unquote
 
 from .models import UserProfile, SavedRecipe, UserSearchHistory, UserViewedRecipe
 from .serializers import UserSerializer
 from apps.recipes.serializers import RecipeListSerializer
+from apps.common.services import get_ai_generated_image
 
 User = get_user_model()
 
@@ -29,6 +31,7 @@ def register_user(request):
         }, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def login_user(request):
@@ -43,6 +46,7 @@ def login_user(request):
             'first_name': user.first_name
         }, status=200)
     return Response({'error': 'Invalid Credentials'}, status=401)
+
 
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAuthenticated])
@@ -65,7 +69,6 @@ def user_profile(request):
         profile.save()
         return Response({'message': 'Profile updated successfully'})
 
-# apps/accounts/views.py
 
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
@@ -74,6 +77,7 @@ def delete_account(request):
     user = request.user
     user.delete()
     return Response({'message': 'Account deleted successfully'}, status=200)
+
 
 # ========== BOOKMARKS ==========
 @api_view(['POST'])
@@ -107,18 +111,26 @@ def toggle_bookmark(request, recipe_id=None):
     else:
         return Response({'error': 'No recipe identifier provided'}, status=400)
     
-    bookmark, created = SavedRecipe.objects.get_or_create(user=request.user, recipe=recipe)
+    # Get image URL from cache
+    image_url = get_ai_generated_image(recipe.title)
+    
+    bookmark, created = SavedRecipe.objects.get_or_create(
+        user=request.user, 
+        recipe=recipe,
+        defaults={'image_url': image_url}
+    )
+    
     if not created:
         bookmark.delete()
         return Response({'saved': False, 'status': 'removed'})
-    return Response({'saved': True, 'status': 'saved'}, status=status.HTTP_201_CREATED)
+    
+    return Response({'saved': True, 'status': 'saved', 'image_url': image_url})
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def toggle_ai_bookmark(request, recipe_title):
     """Toggle bookmark for AI generated recipe"""
-    from urllib.parse import unquote
-    
     recipe_title = unquote(recipe_title).replace('-', ' ').title()
     
     # Get or create user profile
@@ -132,8 +144,8 @@ def toggle_ai_bookmark(request, recipe_title):
     if not isinstance(profile.ai_bookmarks, list):
         profile.ai_bookmarks = []
     
-    print(f"Current bookmarks: {profile.ai_bookmarks}")  # Debug
-    print(f"Toggling for: {recipe_title}")  # Debug
+    print(f"Current bookmarks: {profile.ai_bookmarks}")
+    print(f"Toggling for: {recipe_title}")
     
     # Toggle bookmark
     if recipe_title in profile.ai_bookmarks:
@@ -147,13 +159,14 @@ def toggle_ai_bookmark(request, recipe_title):
     
     profile.save()
     
-    print(f"New bookmarks: {profile.ai_bookmarks}")  # Debug
+    print(f"New bookmarks: {profile.ai_bookmarks}")
     
     return Response({
         'status': status_msg, 
         'saved': saved,
         'bookmarks': profile.ai_bookmarks
     })
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -169,6 +182,14 @@ def saved_recipes(request):
     # Add normal recipes
     for b in bookmarks:
         recipe_data = RecipeListSerializer(b.recipe, context={'request': request}).data
+        
+        # Ensure image URL
+        if not recipe_data.get('image'):
+            if b.image_url:
+                recipe_data['image'] = b.image_url
+            else:
+                recipe_data['image'] = get_ai_generated_image(b.recipe.title)
+        
         recipe_data['bookmark_id'] = b.id
         recipe_data['saved_at'] = b.saved_at
         recipe_data['is_ai_generated'] = False
@@ -184,11 +205,16 @@ def saved_recipes(request):
                 # Get AI recipe from cache
                 ai_recipe = AIGeneratedRecipe.objects.filter(title__iexact=ai_title).first()
                 
+                # Ensure image
+                ai_image = ai_recipe.image_url if ai_recipe else None
+                if not ai_image:
+                    ai_image = get_ai_generated_image(ai_title)
+                
                 ai_data = {
                     'id': f"ai-{ai_title.replace(' ', '-')}",
                     'title': ai_title,
                     'meal': ai_title,
-                    'image': ai_recipe.image_url if ai_recipe else None,
+                    'image': ai_image,
                     'prep_time': ai_recipe.prep_time if ai_recipe else 30,
                     'kcal': ai_recipe.kcal if ai_recipe else 350,
                     'category': 'AI Generated',
@@ -200,12 +226,14 @@ def saved_recipes(request):
     
     return Response(data)
 
+
 # ========== SEARCH HISTORY ==========
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_search_history(request):
     history = UserSearchHistory.objects.filter(user=request.user)[:10]
     return Response({'searches': [item.query for item in history]})
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -222,11 +250,13 @@ def add_search_history(request):
         history.last().delete()
     return Response({'status': 'added'})
 
+
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def clear_search_history(request):
     UserSearchHistory.objects.filter(user=request.user).delete()
     return Response({'status': 'cleared'})
+
 
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
@@ -234,12 +264,14 @@ def remove_search_item(request, query):
     UserSearchHistory.objects.filter(user=request.user, query=query).delete()
     return Response({'status': 'removed'})
 
+
 # ========== VIEWED RECIPES ==========
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_viewed_recipes(request):
     viewed = UserViewedRecipe.objects.filter(user=request.user)[:20]
     return Response({'recipes': [item.recipe_data for item in viewed]})
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -263,6 +295,7 @@ def add_viewed_recipe(request):
     if viewed.count() > 20:
         viewed.last().delete()
     return Response({'status': 'added'})
+
 
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])

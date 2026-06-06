@@ -2,6 +2,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
+from apps.recipes.models import Recipe
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
@@ -19,12 +20,15 @@ class UserProfile(models.Model):
         return self.user.username
 
 class SavedRecipe(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='saved_recipes')
-    recipe = models.ForeignKey('recipes.Recipe', on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
     saved_at = models.DateTimeField(auto_now_add=True)
-
+    
+    # ✅ YEH FIELD ADD KARO
+    image_url = models.CharField(max_length=500, blank=True, null=True)
+    
     class Meta:
-        unique_together = ('user', 'recipe')
+        unique_together = ['user', 'recipe']
 
 class UserSearchHistory(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='search_history')

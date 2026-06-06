@@ -1,5 +1,4 @@
-// Features/DashBoard/components/DashboardRecipeCard.jsx
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Flame, Clock, Bookmark, Eye, Drumstick } from "lucide-react";
 import { BACKEND_BASE, DEFAULT_IMAGES } from "../constants";
@@ -16,20 +15,34 @@ const DashboardRecipeCard = ({
   is_saved = false,
   is_ai_generated = false,
   onBookmarkToggle,
-  forceAI,  // ✅ NEW: Optional prop to force AI treatment
+  forceAI,
 }) => {
   const navigate = useNavigate();
-  const { isBookmarked, toggleBookmark } = useBookmark();
-  const [loading, setLoading] = useState(false);
-  const displayTitle = title || meal || "Tasty Recipe";
-
-  // ✅ FIX: Use forceAI if provided, otherwise use original is_ai_generated flag
-  const isAI = forceAI !== undefined ? forceAI : is_ai_generated;
-
-  // ✅ For AI recipes use title, for regular use id
-  const bookmarkIdentifier = isAI ? displayTitle : id;
+  const { toggleBookmark, isBookmarked } = useBookmark();
   
-  const isSaved = isBookmarked(bookmarkIdentifier, displayTitle, isAI);
+  // Local state for instant UI updates
+  const [isSaved, setIsSaved] = useState(is_saved);
+  
+  // Sync with props
+  useEffect(() => {
+    setIsSaved(is_saved);
+  }, [is_saved]);
+  
+  // Sync with BookmarkContext
+  useEffect(() => {
+    const contextBookmarked = isBookmarked(
+      forceAI ? title : id,
+      title,
+      forceAI !== undefined ? forceAI : is_ai_generated
+    );
+    if (contextBookmarked !== isSaved) {
+      setIsSaved(contextBookmarked);
+    }
+  }, [id, title, forceAI, is_ai_generated, isBookmarked]);
+  
+  const displayTitle = title || meal || "Tasty Recipe";
+  const isAI = forceAI !== undefined ? forceAI : is_ai_generated;
+  const bookmarkIdentifier = isAI ? displayTitle : id;
 
   const imageUrl = image
     ? image.startsWith("http")
@@ -45,29 +58,26 @@ const DashboardRecipeCard = ({
     }
   };
 
+  // Instant bookmark toggle - 1 click, no reload
   const handleBookmark = async (e) => {
     e.stopPropagation();
-
+    
     const token = localStorage.getItem("ingrido_token");
     if (!token) {
       navigate("/login");
       return;
     }
-
-    setLoading(true);
-
+    
+    // Instant UI update
+    const newSavedState = !isSaved;
+    setIsSaved(newSavedState);
+    
+    // Background API call
     try {
-      // ✅ Pass correct isAI value to parent
       if (onBookmarkToggle) {
-        await onBookmarkToggle(
-          id,                    // recipeId
-          displayTitle,          // recipeTitle
-          isAI,                  // isAI - respect the calculated value
-          isSaved                // currentIsSaved status
-        );
+        await onBookmarkToggle(id, displayTitle, isAI, newSavedState);
       } else {
-        // Fallback agar parent handler nahi hai
-        const newStatus = await toggleBookmark(
+        await toggleBookmark(
           bookmarkIdentifier,
           displayTitle,
           isAI,
@@ -78,15 +88,10 @@ const DashboardRecipeCard = ({
             prep_time: prep_time,
           }
         );
-        
-        if (onBookmarkToggle) {
-          onBookmarkToggle(id, newStatus);
-        }
       }
     } catch (err) {
       console.error("Bookmark error:", err);
-    } finally {
-      setLoading(false);
+      setIsSaved(!newSavedState);
     }
   };
 
@@ -98,6 +103,10 @@ const DashboardRecipeCard = ({
           alt={displayTitle}
           loading="lazy"
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = DEFAULT_IMAGES.PLACEHOLDER;
+          }}
         />
       </div>
 
@@ -135,7 +144,6 @@ const DashboardRecipeCard = ({
         <div className="flex items-center justify-end gap-1 border-t border-border pt-3">
           <button
             onClick={handleBookmark}
-            disabled={loading}
             className={`rounded-md p-2 transition ${
               isSaved
                 ? "text-amber-600 bg-amber-50"
