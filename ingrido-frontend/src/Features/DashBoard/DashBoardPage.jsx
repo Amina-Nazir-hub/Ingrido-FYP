@@ -1,4 +1,3 @@
-// Features/DashBoard/DashBoardPage.jsx
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { Loader2 } from "lucide-react";
@@ -15,8 +14,6 @@ export function DashboardPage() {
   const [localHistory, setLocalHistory] = useState([]);
 
   const currentName = user?.first_name || user?.username || localStorage.getItem("user_name") || "Chef";
-
-  // ✅ FIXED: Bookmark status sync for recommended recipes
   useEffect(() => {
     if (recommendedCards.length > 0) {
       const updatedRecommended = recommendedCards.map(recipe => ({
@@ -31,7 +28,6 @@ export function DashboardPage() {
     }
   }, [recommendedCards, isBookmarked]);
 
-  // ✅ FIXED: Bookmark status sync for history recipes
   useEffect(() => {
     if (viewHistory.length > 0) {
       const updatedHistory = viewHistory.map(recipe => ({
@@ -45,16 +41,12 @@ export function DashboardPage() {
       setLocalHistory(updatedHistory);
     }
   }, [viewHistory, isBookmarked]);
-
-  // ✅ FIXED: Handle bookmark toggle correctly
   const handleBookmarkToggle = async (recipeId, recipeTitle, isAI, currentIsSaved) => {
     const token = localStorage.getItem("ingrido_token");
     if (!token) {
       window.location.href = "/login";
       return;
     }
-
-    // ✅ CRITICAL: AI recipes ke liye title use karo, ID nahi
     let identifier;
     let isAIRecipe = isAI;
     
@@ -80,7 +72,6 @@ export function DashboardPage() {
       );
       
       if (newStatus !== false) {
-        // Update recommended section
         setLocalRecommended(prev =>
           prev.map(recipe =>
             recipe.id === recipeId || recipe.title === recipeTitle 
@@ -88,7 +79,6 @@ export function DashboardPage() {
               : recipe
           )
         );
-        // Update history section
         setLocalHistory(prev =>
           prev.map(recipe =>
             recipe.id === recipeId || recipe.title === recipeTitle
@@ -129,24 +119,22 @@ export function DashboardPage() {
         <WelcomeHero name={currentName} />
         
         <div className="mt-6">
-          {/* ✅ Recommended Recipes - Hamesha AI treat karo */}
+        
           {localRecommended.length > 0 && (
             <RecipeGrid 
               items={localRecommended} 
               title="Recommended Recipes"
               onBookmarkToggle={handleBookmarkToggle}
-              forceAI={true}  // ✅ Force AI for all recommended recipes
+              forceAI={true}  
             />
           )}
-          
-          {/* ✅ Recently Viewed - Original flag respect karo (don't force AI) */}
+        
           {localHistory.length > 0 && (
             <RecipeGrid 
               items={localHistory} 
               title="Recently Viewed Recipes" 
               onClear={handleClearHistory}
               onBookmarkToggle={handleBookmarkToggle}
-              // ✅ No forceAI prop - original is_ai_generated flag will be used
             />
           )}
         </div>

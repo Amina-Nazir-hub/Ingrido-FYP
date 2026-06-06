@@ -130,6 +130,7 @@ export const useDashboardData = () => {
         : API_ENDPOINTS.SEASONAL_RECIPES;
 
       const res = await axios.get(url, config);
+      const res = await axios.get(API_ENDPOINTS.SEASONAL_RECIPES, config);
 
       const processedRecipes = res.data.map(recipe => ({
         ...recipe,
