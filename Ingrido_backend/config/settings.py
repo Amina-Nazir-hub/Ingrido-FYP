@@ -64,7 +64,6 @@ DATABASES = {
         'NAME': 'ingrido_db',
         'USER': 'postgres',
         'PASSWORD': 'taibajutt18'
-        
     }
 }
 

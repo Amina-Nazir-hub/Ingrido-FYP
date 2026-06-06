@@ -35,18 +35,24 @@ const WelcomeHero = ({ name }) => {
     await removeSearch(itemToRemove);
   };
 
-  const filteredHistory = query.trim() === "" 
-    ? searchHistory 
-    : searchHistory.filter(item => item.toLowerCase().includes(query.toLowerCase()));
+  const filteredHistory =
+    query.trim() === ""
+      ? searchHistory
+      : searchHistory.filter((item) =>
+          item.toLowerCase().includes(query.toLowerCase()),
+        );
 
-  const hasNewSearch = query.trim() !== "" && !searchHistory.some(h => h.toLowerCase() === query.trim().toLowerCase());
+  const hasNewSearch =
+    query.trim() !== "" &&
+    !searchHistory.some((h) => h.toLowerCase() === query.trim().toLowerCase());
 
   return (
     <section className="flex flex-col items-center justify-center w-full pt-20 pb-8 relative">
       <div className="w-full max-w-2xl text-center mb-6">
-        <h2 className="text-lg font-medium text-gray-500">Hello, {name}!</h2>
-        <h1 className="text-3xl md:text-4xl font-bold text-black">What are we cooking today?</h1>
-        
+        <h2 className="text-lg font-medium text-white-500">Hello, {name}!</h2>
+        <h1 className="text-3xl md:text-4xl font-bold text-white">
+          What are we cooking today?
+        </h1>
       </div>
 
       <div ref={dropdownRef} className="w-full max-w-lg relative z-50">
@@ -64,8 +70,8 @@ const WelcomeHero = ({ name }) => {
             placeholder="Search dish name, ingredient (e.g., Biryani, Chicken)..."
             className="w-full px-2 h-12 text-black outline-none bg-transparent placeholder-gray-400 font-medium text-sm"
           />
-          <button 
-            onClick={() => handleSearch(query)} 
+          <button
+            onClick={() => handleSearch(query)}
             className="bg-primary text-white p-2.5 rounded-full hover:bg-opacity-90 transition-all shadow-sm"
           >
             <Search size={18} />
@@ -80,7 +86,10 @@ const WelcomeHero = ({ name }) => {
                 className="w-full flex items-center gap-3 px-5 py-3 hover:bg-purple-50 cursor-pointer text-sm font-bold text-purple-700 transition-colors border-b border-gray-50"
               >
                 <Sparkles size={15} className="text-purple-500 animate-pulse" />
-                <span>Ask AI to generate recipe for: <span className="italic">"{query}"</span></span>
+                <span>
+                  Ask AI to generate recipe for:{" "}
+                  <span className="italic">"{query}"</span>
+                </span>
               </div>
             )}
 
