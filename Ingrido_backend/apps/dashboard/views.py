@@ -36,18 +36,14 @@ def get_session_seed(request):
     Seed formula: session_key + current_date (din ke andar same rehta hai)
     """
     session_key = request.session.session_key
-
-    # Agar session nahi hai (anonymous user), to create karo
     if not session_key:
         request.session.create()
         session_key = request.session.session_key
 
     today = datetime.now().strftime("%Y-%m-%d")
     raw = f"{session_key}-{today}"
-    # Integer seed chahiye random.seed() ke liye
     seed = int(hashlib.md5(raw.encode()).hexdigest(), 16) % (2**32)
     return seed
-
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -61,26 +57,20 @@ def get_seasonal_recommendations(request):
     """
     current_season = get_current_season()
     groq_client = get_groq_client()
-
-    # FIX: force_refresh=true aane par naya seed banao, warna session seed use karo
     force_refresh = request.query_params.get("refresh") == "true"
 
     if force_refresh:
-        # F5 ya manual refresh — naya random seed (session se independent)
         seed = random.randint(0, 2**32)
-        # Session mein save karo taake is session ka naya consistent seed ho
         request.session["dash_seed"] = seed
         request.session.modified = True
     else:
-        # Pehle check karo ke session mein seed pehle se hai
         seed = request.session.get("dash_seed")
         if seed is None:
-            # Pehli baar — date+session se stable seed banao
             seed = get_session_seed(request)
             request.session["dash_seed"] = seed
             request.session.modified = True
 
-    rng = random.Random(seed)  # Global random nahi, local instance use karo
+    rng = random.Random(seed)  
 
     seasonal_keywords = {
         'winter': ['nihari', 'haleem', 'soup', 'karahi', 'korma', 'saag', 'paye', 'chai'],
@@ -98,7 +88,6 @@ def get_seasonal_recommendations(request):
         Q(description__icontains=keywords[0])
     ).distinct())
 
-    # FIX: random.shuffle ki jagah rng.shuffle — seed-based consistent order
     rng.shuffle(seasonal_db_recipes)
     seasonal_db_recipes = seasonal_db_recipes[:6]
 
@@ -115,7 +104,7 @@ def get_seasonal_recommendations(request):
 
     if not groq_client:
         all_recipes = list(Recipe.objects.all())
-        rng.shuffle(all_recipes)  # FIX: rng.shuffle
+        rng.shuffle(all_recipes)  
         selected = all_recipes[:6]
         serializer = RecipeListSerializer(selected, many=True, context={'request': request})
         data = serializer.data
@@ -159,7 +148,7 @@ def get_seasonal_recommendations(request):
 
         if not json_match:
             all_recipes = list(Recipe.objects.all())
-            rng.shuffle(all_recipes)  # FIX: rng.shuffle
+            rng.shuffle(all_recipes)  
             final_recipes = all_recipes[:6]
             serializer = RecipeListSerializer(final_recipes, many=True, context={'request': request})
             data = serializer.data
@@ -183,7 +172,6 @@ def get_seasonal_recommendations(request):
                 image_url = cached_ai.image_url if cached_ai else get_ai_generated_image(item['title'])
 
                 formatted_ai_recipes.append({
-                    # FIX: random.randint ki jagah rng.randint — seed-based consistent ID
                     'id': f"ai-seasonal-{idx}-{rng.randint(1000, 9999)}",
                     'title': item['title'],
                     'image': image_url,
@@ -203,14 +191,14 @@ def get_seasonal_recommendations(request):
 
         combined = db_serialized + formatted_ai_recipes
         combined = combined[:6]
-        rng.shuffle(combined)  # FIX: rng.shuffle
+        rng.shuffle(combined) 
 
         return Response(combined)
 
     except Exception as e:
         print(f"Seasonal AI error: {e}")
         all_recipes = list(Recipe.objects.all())
-        rng.shuffle(all_recipes)  # FIX: rng.shuffle
+        rng.shuffle(all_recipes)  
         selected = all_recipes[:6]
         serializer = RecipeListSerializer(selected, many=True, context={'request': request})
         data = serializer.data
@@ -222,16 +210,11 @@ def get_seasonal_recommendations(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_dashboard_recipes(request):
-    """
-    Get random recipes for dashboard.
-    Same session = same order. F5 = naya order.
-    """
-    # Session seed use karo yahan bhi
     seed = request.session.get("dash_seed") or get_session_seed(request)
     rng = random.Random(seed)
 
     recipes = list(Recipe.objects.all())
-    rng.shuffle(recipes)  # FIX: rng.shuffle
+    rng.shuffle(recipes) 
     recipes = recipes[:12]
 
     serializer = RecipeListSerializer(recipes, many=True, context={'request': request})
