@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Flame, Clock, Bookmark, Eye, Drumstick } from "lucide-react";
-import { BACKEND_BASE, DEFAULT_IMAGES } from "../constants";
 import { useBookmark } from "../../../context/BookmarkContext";
+
+const BACKEND_BASE = "http://127.0.0.1:8000";
+const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800";
 
 const DashboardRecipeCard = ({
   id,
@@ -18,84 +20,80 @@ const DashboardRecipeCard = ({
   forceAI,
 }) => {
   const navigate = useNavigate();
-  const { toggleBookmark, isBookmarked } = useBookmark();
-
-  const [isSaved, setIsSaved] = useState(is_saved);
-
+  const { isBookmarked, toggleBookmark, refreshBookmarks } = useBookmark();
+  
+  // Determine if this is AI recipe
   const displayTitle = title || meal || "Tasty Recipe";
   const isAI = forceAI !== undefined ? forceAI : is_ai_generated;
-  const bookmarkIdentifier = isAI ? displayTitle : id;
+  
+  // ✅ Check bookmark status from context
+  const [localSaved, setLocalSaved] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
+  // ✅ Sync bookmark status from context
   useEffect(() => {
-    setIsSaved(is_saved);
-  }, [is_saved]);
-
-  useEffect(() => {
-    const contextBookmarked = isBookmarked(
-      bookmarkIdentifier,
-      displayTitle,
-      isAI
-    );
-
-    if (contextBookmarked !== isSaved) {
-      setIsSaved(contextBookmarked);
-    }
-  }, [bookmarkIdentifier, displayTitle, isAI, isBookmarked, isSaved]);
+    const identifier = isAI ? displayTitle : id;
+    const bookmarked = isBookmarked(identifier, displayTitle, isAI);
+    console.log(`📌 Bookmark status for ${displayTitle}: ${bookmarked}`);
+    setLocalSaved(bookmarked);
+  }, [id, displayTitle, isAI, isBookmarked]);
 
   const imageUrl = image
     ? image.startsWith("http")
       ? image
       : `${BACKEND_BASE}${image}`
-    : DEFAULT_IMAGES.PLACEHOLDER;
+    : DEFAULT_IMAGE;
 
   const handleViewDetail = () => {
-    if (
-      isAI ||
-      (id && id.toString().startsWith("ai-")) ||
-      (id && id.toString().includes("seasonal"))
-    ) {
+    if (is_ai_generated || (id && id.toString().startsWith("ai-")) || (id && id.toString().includes("seasonal"))) {
       navigate(`/recipe/ai/${encodeURIComponent(displayTitle)}`);
     } else {
       navigate(`/recipe/${id}`);
     }
   };
 
+  // ✅ Handle bookmark click - instant update
   const handleBookmark = async (e) => {
     e.stopPropagation();
-
+    
+    if (isProcessing) return;
+    
     const token = localStorage.getItem("ingrido_token");
     if (!token) {
       navigate("/login");
       return;
     }
-
-    const newSavedState = !isSaved;
-    setIsSaved(newSavedState);
-
+    
+    // ✅ INSTANT UI UPDATE (optimistic)
+    const newState = !localSaved;
+    console.log(`📌 Toggling bookmark for ${displayTitle}: ${localSaved} -> ${newState}`);
+    setLocalSaved(newState);
+    setIsProcessing(true);
+    
     try {
+      // Call toggleBookmark from context
+      const result = await toggleBookmark(id, displayTitle, isAI, {
+        title: displayTitle,
+        image: image,
+        kcal: kcal,
+        prep_time: prep_time,
+      });
+      
+      console.log(`✅ Bookmark result for ${displayTitle}:`, result);
+      
+      // Refresh bookmarks to keep context in sync
+      await refreshBookmarks();
+      
+      // Notify parent if needed
       if (onBookmarkToggle) {
-        await onBookmarkToggle(
-          id,
-          displayTitle,
-          isAI,
-          newSavedState
-        );
-      } else {
-        await toggleBookmark(
-          bookmarkIdentifier,
-          displayTitle,
-          isAI,
-          {
-            title: displayTitle,
-            image,
-            kcal,
-            prep_time,
-          }
-        );
+        onBookmarkToggle(id, displayTitle, isAI, newState);
       }
     } catch (err) {
       console.error("Bookmark error:", err);
-      setIsSaved(!newSavedState);
+      // ❌ Revert on error
+      setLocalSaved(!newState);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -108,7 +106,8 @@ const DashboardRecipeCard = ({
           loading="lazy"
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           onError={(e) => {
-            e.target.src = DEFAULT_IMAGES.PLACEHOLDER;
+            e.target.onerror = null;
+            e.target.src = DEFAULT_IMAGE;
           }}
         />
       </div>
@@ -119,40 +118,51 @@ const DashboardRecipeCard = ({
         </h3>
 
         <div className="grid grid-cols-3 gap-2 text-xs">
-          <div className="flex flex-col items-center bg-secondary p-2 rounded-md">
-            <Flame className="h-4 w-4 text-orange-500 mb-1" />
-            <span className="font-semibold">{kcal || "350"}</span>
+          <div className="flex flex-col items-center rounded-md bg-secondary p-2">
+            <Flame className="mb-1 h-4 w-4 text-orange-500" />
+            <span className="font-semibold text-foreground">
+              {kcal || "350"}
+            </span>
             <span className="text-muted-foreground">kcal</span>
           </div>
 
-          <div className="flex flex-col items-center bg-secondary p-2 rounded-md">
-            <Clock className="h-4 w-4 text-blue-500 mb-1" />
-            <span className="font-semibold">{prep_time || "25"}</span>
+          <div className="flex flex-col items-center rounded-md bg-secondary p-2">
+            <Clock className="mb-1 h-4 w-4 text-blue-500" />
+            <span className="font-semibold text-foreground">
+              {prep_time || "25"}
+            </span>
             <span className="text-muted-foreground">mins</span>
           </div>
 
-          <div className="flex flex-col items-center bg-secondary p-2 rounded-md">
-            <Drumstick className="h-4 w-4 text-green-600 mb-1" />
-            <span className="font-semibold">{protein || "20g"}</span>
+          <div className="flex flex-col items-center rounded-md bg-secondary p-2">
+            <Drumstick className="mb-1 h-4 w-4 text-green-600" />
+            <span className="font-semibold text-foreground">
+              {protein || "20g"}
+            </span>
             <span className="text-muted-foreground">protein</span>
           </div>
         </div>
 
-        <div className="flex justify-end gap-1 border-t border-border pt-3">
+        <div className="flex items-center justify-end gap-1 border-t border-border pt-3">
           <button
             onClick={handleBookmark}
-            className={`p-2 rounded-md transition ${
-              isSaved
+            disabled={isProcessing}
+            className={`rounded-md p-2 transition ${
+              isProcessing ? "opacity-50 cursor-wait" : ""
+            } ${
+              localSaved
                 ? "text-amber-600 bg-amber-50"
                 : "text-muted-foreground hover:bg-secondary hover:text-amber-600"
             }`}
+            title={localSaved ? "Remove from saved" : "Save Recipe"}
           >
-            <Bookmark className={`h-5 w-5 ${isSaved ? "fill-current" : ""}`} />
+            <Bookmark className={`h-5 w-5 ${localSaved ? "fill-current" : ""}`} />
           </button>
 
           <button
             onClick={handleViewDetail}
-            className="p-2 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition"
+            className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground transition"
+            title="View Details"
           >
             <Eye className="h-5 w-5" />
           </button>
