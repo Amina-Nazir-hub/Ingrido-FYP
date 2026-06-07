@@ -9,7 +9,7 @@ export const FeaturesSection = () => {
           <h2 className="text-3xl md:text-4xl font-bold mb-4 font-display">
             How Ingrido Works
           </h2>
-          <p className="text-muted-foreground max-w-md mx-auto">
+          <p className="text-foreground max-w-md mx-auto">
             Smart meal planning made simple — from signup to your dinner table.
           </p>
         </div>

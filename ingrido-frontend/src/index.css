@@ -21,10 +21,12 @@
   --color-border: hsl(var(--border));
   --color-ring: hsl(var(--ring));
 
-  --shadow-card: 0 4px 20px -4px rgba(0, 0, 0, 0.08);
-  --shadow-card-hover: 0 10px 30px -5px rgba(0, 0, 0, 0.12);
-  --shadow-dropdown: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
-  --shadow-modal: 0 20px 35px -10px rgba(0, 0, 0, 0.15);
+  /* Re-calibrated shadows utilizing minimal black/burgundy profiles */
+  --shadow-card: 0 4px 20px -4px rgba(109, 0, 26, 0.05);
+  --shadow-card-hover: 0 10px 30px -5px rgba(109, 0, 26, 0.12);
+  --shadow-dropdown:
+    0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+  --shadow-modal: 0 20px 35px -10px rgba(0, 0, 0, 0.2);
 
   --animate-fade-up: fade-up 0.6s ease-out forwards;
   --animate-fade-down: fade-down 0.6s ease-out forwards;
@@ -32,7 +34,8 @@
   --animate-fade-out: fade-out 0.3s ease-out forwards;
   --animate-slide-in: slide-in 0.4s ease-out forwards;
   --animate-slide-out: slide-out 0.4s ease-out forwards;
-  --animate-scale-in: scale-in 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+  --animate-scale-in: scale-in 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55)
+    forwards;
   --animate-pulse-slow: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   --animate-shimmer: shimmer 2s infinite;
   --animate-float: float 3s ease-in-out infinite;
@@ -107,7 +110,8 @@
   }
 
   @keyframes pulse-slow {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 1;
     }
     50% {
@@ -125,7 +129,8 @@
   }
 
   @keyframes float {
-    0%, 100% {
+    0%,
+    100% {
       transform: translateY(0px);
     }
     50% {
@@ -136,68 +141,69 @@
 
 @layer base {
   :root {
-    --background: 40 33% 97%;
-    --foreground: 25 20% 15%;
-    --card: 0 0% 100%;
-    --card-foreground: 25 20% 15%;
-    --primary: 142 40% 35%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 30 60% 55%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 40 20% 90%;
-    --muted-foreground: 25 10% 45%;
-    --accent: 30 60% 55%;
+    /* Color mapping updated from image_7e2df5.jpg and image_7e30c3.png */
+    --background: 25 10% 45%; /* Soft Pink from image_7e2df5.jpg */
+    --foreground: 0 0% 0%; /* Black (#000000) */
+    --card: 357 59% 90%; /* Pure White cards to pop against the pink backdrop */
+    --card-foreground: 0 0% 0%; /* Black text inside cards */
+    --primary: 346 100% 21%; /* Burgundy (#6D001A) */
+    --primary-foreground: 0 0% 100%; /* White text on primary elements */
+    --secondary: 0 0% 15%; /* Dark charcoal secondary elements */
+    --secondary-foreground: 0 0% 100%; /* White text on secondary elements */
+    --muted: 357 30% 83%; /* Darker muted tint of the background pink */
+    --muted-foreground: 357 20% 35%; /* Deep pink-toned dark grey for subtle typography */
+    --accent: 346 100% 21%; /* Burgundy (#6D001A) */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 35 20% 85%;
-    --input: 35 20% 85%;
-    --ring: 142 40% 35%;
-    --radius: 0.75rem;
+    --border: 357 25% 80%; /* Subtle rose-tinted border line color */
+    --input: 357 25% 80%;
+    --ring: 346 100% 21%; /* Focus rings matching Burgundy */
+    --radius: 0.5rem;
   }
 
-  /* Dark mode support */
+  /* High contrast dark mode architecture remains absolute dark */
   @media (prefers-color-scheme: dark) {
     :root {
-      --background: 25 20% 8%;
-      --foreground: 40 20% 90%;
-      --card: 25 20% 10%;
-      --card-foreground: 40 20% 90%;
-      --primary: 142 40% 45%;
+      --background: 0 0% 0%; /* Black (#000000) */
+      --foreground: 0 0% 100%; /* White (#FFFFFF) */
+      --card: 0 0% 7%; /* Slightly offset pitch black for layout depths */
+      --card-foreground: 0 0% 100%;
+      --primary: 346 100% 21%; /* Burgundy (#6D001A) */
       --primary-foreground: 0 0% 100%;
-      --secondary: 30 60% 45%;
+      --secondary: 0 0% 20%;
       --secondary-foreground: 0 0% 100%;
-      --muted: 25 20% 15%;
-      --muted-foreground: 40 10% 60%;
-      --accent: 30 60% 45%;
+      --muted: 0 0% 15%;
+      --muted-foreground: 0 0% 65%;
+      --accent: 346 100% 21%;
       --accent-foreground: 0 0% 100%;
       --destructive: 0 70% 50%;
       --destructive-foreground: 0 0% 100%;
-      --border: 25 20% 20%;
-      --input: 25 20% 20%;
-      --ring: 142 40% 45%;
+      --border: 0 0% 18%;
+      --input: 0 0% 18%;
+      --ring: 346 100% 21%;
     }
   }
 
-  /* Manual dark mode class */
+  /* Manual dark class override matching system settings */
   .dark {
-    --background: 25 20% 8%;
-    --foreground: 40 20% 90%;
-    --card: 25 20% 10%;
-    --card-foreground: 40 20% 90%;
-    --primary: 142 40% 45%;
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 100%;
+    --primary: 346 100% 21%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 30 60% 45%;
+    --secondary: 0 0% 20%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 25 20% 15%;
-    --muted-foreground: 40 10% 60%;
-    --accent: 30 60% 45%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 65%;
+    --accent: 346 100% 21%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 25 20% 20%;
-    --input: 25 20% 20%;
-    --ring: 142 40% 45%;
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 346 100% 21%;
   }
 
   * {
@@ -217,7 +223,12 @@
   }
 
   /* Typography */
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: "Playfair Display", serif;
     font-weight: 700;
     letter-spacing: -0.025em;
@@ -225,14 +236,16 @@
 
   /* Selection color */
   ::selection {
-    background-color: hsl(var(--primary) / 0.2);
+    background-color: hsl(var(--primary) / 0.3);
     color: hsl(var(--foreground));
   }
 
-  /* Focus styles - using standard CSS instead of ring utilities */
+  /* Focus styles */
   :focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px hsl(var(--ring)), 0 0 0 4px hsl(var(--background));
+    box-shadow:
+      0 0 0 2px hsl(var(--ring)),
+      0 0 0 4px hsl(var(--background));
   }
 
   /* Scrollbar styling */
@@ -289,7 +302,7 @@
   .card {
     background-color: hsl(var(--card));
     border: 1px solid hsl(var(--border));
-    border-radius: 0.75rem;
+    border-radius: 0.5rem;
     box-shadow: var(--shadow-card);
     transition-property: all;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
@@ -316,13 +329,15 @@
     transition-property: all;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 200ms;
-    border-radius: 9999px;
+    border-radius: 4px;
     cursor: pointer;
   }
 
   .btn:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px hsl(var(--ring)), 0 0 0 4px hsl(var(--background));
+    box-shadow:
+      0 0 0 2px hsl(var(--ring)),
+      0 0 0 4px hsl(var(--background));
   }
 
   .btn:disabled {
@@ -338,7 +353,9 @@
 
   .btn-primary:hover {
     background-color: hsl(var(--primary) / 0.9);
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    box-shadow:
+      0 4px 6px -1px rgb(0 0 0 / 0.1),
+      0 2px 4px -2px rgb(0 0 0 / 0.1);
   }
 
   .btn-secondary {
@@ -349,7 +366,9 @@
 
   .btn-secondary:hover {
     background-color: hsl(var(--secondary) / 0.9);
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    box-shadow:
+      0 4px 6px -1px rgb(0 0 0 / 0.1),
+      0 2px 4px -2px rgb(0 0 0 / 0.1);
   }
 
   .btn-outline {
@@ -381,7 +400,9 @@
 
   .btn-danger:hover {
     background-color: hsl(var(--destructive) / 0.9);
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    box-shadow:
+      0 4px 6px -1px rgb(0 0 0 / 0.1),
+      0 2px 4px -2px rgb(0 0 0 / 0.1);
   }
 
   /* Input styles */
@@ -390,7 +411,7 @@
     padding: 0.5rem 1rem;
     background-color: hsl(var(--card));
     border: 1px solid hsl(var(--border));
-    border-radius: 0.5rem;
+    border-radius: 0.375rem;
     color: hsl(var(--foreground));
     transition-property: all;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
@@ -412,7 +433,7 @@
     display: inline-flex;
     align-items: center;
     padding: 0.125rem 0.625rem;
-    border-radius: 9999px;
+    border-radius: 2px;
     font-size: 0.75rem;
     font-weight: 500;
   }
@@ -453,7 +474,7 @@
   }
 
   .dark .badge-danger {
-    background-color: rgb(239 68 68 / 0.2);
+    background-color: rgba(151, 17, 17, 0.2);
     color: rgb(248 113 113);
   }
 
@@ -477,7 +498,7 @@
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 
-  /* Glass morphism with vendor prefixes */
+  /* Glass morphism */
   .glass {
     background-color: rgb(255 255 255 / 0.1);
     -webkit-backdrop-filter: blur(12px);
@@ -495,28 +516,23 @@
   .animate-delay-100 {
     animation-delay: 100ms;
   }
-  
   .animate-delay-200 {
     animation-delay: 200ms;
   }
-  
   .animate-delay-300 {
     animation-delay: 300ms;
   }
-  
   .animate-delay-500 {
     animation-delay: 500ms;
   }
-  
   .animate-delay-700 {
     animation-delay: 700ms;
   }
-  
   .animate-delay-1000 {
     animation-delay: 1000ms;
   }
 
-  /* Line clamp utilities with standard property */
+  /* Line clamp utilities */
   .line-clamp-1 {
     overflow: hidden;
     display: -webkit-box;
@@ -541,32 +557,32 @@
     line-clamp: 3;
   }
 
-  /* Hide scrollbar but keep functionality */
+  /* Hide scrollbar */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
 
-  /* Custom scrollbar for specific elements */
+  /* Custom scrollbar */
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
-  
+
   .custom-scrollbar::-webkit-scrollbar-track {
     background-color: hsl(var(--muted));
     border-radius: 9999px;
   }
-  
+
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background-color: hsl(var(--muted-foreground) / 0.3);
     border-radius: 9999px;
   }
-  
+
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background-color: hsl(var(--muted-foreground) / 0.5);
   }
@@ -575,16 +591,14 @@
   .aspect-w-16 {
     aspect-ratio: 16 / 9;
   }
-  
   .aspect-w-4 {
     aspect-ratio: 4 / 3;
   }
-  
   .aspect-w-1 {
     aspect-ratio: 1 / 1;
   }
 
-  /* Shimmer effect for loading states */
+  /* Shimmer effect */
   .shimmer {
     background: linear-gradient(
       90deg,
@@ -596,31 +610,21 @@
     animation: shimmer 2s infinite;
   }
 
-  /* Floating animation */
   .animate-float {
     animation: float 3s ease-in-out infinite;
   }
-
-  /* Pulse slow animation */
   .animate-pulse-slow {
     animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
-
-  /* Scale in animation */
   .animate-scale-in {
     animation: scale-in 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
   }
-
-  /* Slide in animations */
   .animate-slide-in {
     animation: slide-in 0.4s ease-out forwards;
   }
-  
   .animate-slide-out {
     animation: slide-out 0.4s ease-out forwards;
   }
-
-  /* Fade animations */
   .animate-fade-out {
     animation: fade-out 0.3s ease-out forwards;
   }
@@ -630,14 +634,14 @@
     background-image: radial-gradient(hsl(var(--muted)) 1px, transparent 1px);
     background-size: 20px 20px;
   }
-  
+
   .bg-grid {
-    background-image: linear-gradient(hsl(var(--border)) 1px, transparent 1px),
+    background-image:
+      linear-gradient(hsl(var(--border)) 1px, transparent 1px),
       linear-gradient(90deg, hsl(var(--border)) 1px, transparent 1px);
     background-size: 40px 40px;
   }
 
-  /* Reduced motion preferences */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -650,17 +654,14 @@
   }
 }
 
-/* Print styles */
 @media print {
   .no-print {
     display: none !important;
   }
-  
   body {
     background-color: white;
     color: black;
   }
-  
   .card {
     box-shadow: none;
     border: 1px solid #e5e7eb;

@@ -1,19 +1,20 @@
+// meal-planner/components/PlanActions.jsx
 import { RefreshCw, Trash2 } from "lucide-react";
 
 const PlanActions = ({ onRegenerate, onDelete, generating }) => {
   return (
-    <div className="flex gap-3">
-      <button 
-        onClick={onRegenerate} 
+    <div className="flex gap-3 py-2">
+      <button
+        onClick={onRegenerate}
         disabled={generating}
-        className="flex items-center gap-2 px-6 py-3 bg-[#b17b46] text-white rounded-xl shadow-lg hover:bg-[#8B5E3C] transition disabled:opacity-50 disabled:cursor-not-allowed"
+        className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-md shadow-lg hover:bg-primary/75 transition cursor-pointer"
       >
-        <RefreshCw className={generating ? "animate-spin" : ""} /> 
+        <RefreshCw className={generating ? "animate-spin" : ""} />
         {generating ? "Generating..." : "Regenerate"}
       </button>
-      <button 
-        onClick={onDelete} 
-        className="flex items-center gap-2 px-6 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition"
+      <button
+        onClick={onDelete}
+        className="flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/75 transition  cursor-pointer"
       >
         <Trash2 /> Delete
       </button>

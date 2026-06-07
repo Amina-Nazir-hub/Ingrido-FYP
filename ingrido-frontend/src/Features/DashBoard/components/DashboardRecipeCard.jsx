@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Flame, Clock, Bookmark, Eye, Drumstick } from "lucide-react";
 import { useBookmark } from "../../../context/BookmarkContext";
 
 const BACKEND_BASE = "http://127.0.0.1:8000";
-const DEFAULT_IMAGE = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800";
+const DEFAULT_IMAGE =
+  "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800";
 
 const DashboardRecipeCard = ({
   id,
@@ -21,20 +22,16 @@ const DashboardRecipeCard = ({
 }) => {
   const navigate = useNavigate();
   const { isBookmarked, toggleBookmark, refreshBookmarks } = useBookmark();
-  
-  // Determine if this is AI recipe
+
   const displayTitle = title || meal || "Tasty Recipe";
   const isAI = forceAI !== undefined ? forceAI : is_ai_generated;
-  
-  // ✅ Check bookmark status from context
-  const [localSaved, setLocalSaved] = useState(false);
+
+  const [localSaved, setLocalSaved] = useState(is_saved);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // ✅ Sync bookmark status from context
   useEffect(() => {
     const identifier = isAI ? displayTitle : id;
     const bookmarked = isBookmarked(identifier, displayTitle, isAI);
-    console.log(`📌 Bookmark status for ${displayTitle}: ${bookmarked}`);
     setLocalSaved(bookmarked);
   }, [id, displayTitle, isAI, isBookmarked]);
 
@@ -45,52 +42,49 @@ const DashboardRecipeCard = ({
     : DEFAULT_IMAGE;
 
   const handleViewDetail = () => {
-    if (is_ai_generated || (id && id.toString().startsWith("ai-")) || (id && id.toString().includes("seasonal"))) {
+    if (
+      isAI ||
+      (id && id.toString().startsWith("ai-")) ||
+      (id && id.toString().includes("seasonal"))
+    ) {
       navigate(`/recipe/ai/${encodeURIComponent(displayTitle)}`);
     } else {
       navigate(`/recipe/${id}`);
     }
   };
 
-  // ✅ Handle bookmark click - instant update
   const handleBookmark = async (e) => {
     e.stopPropagation();
-    
+
     if (isProcessing) return;
-    
+
     const token = localStorage.getItem("ingrido_token");
+
     if (!token) {
       navigate("/login");
       return;
     }
-    
-    // ✅ INSTANT UI UPDATE (optimistic)
+
     const newState = !localSaved;
-    console.log(`📌 Toggling bookmark for ${displayTitle}: ${localSaved} -> ${newState}`);
+
     setLocalSaved(newState);
     setIsProcessing(true);
-    
+
     try {
-      // Call toggleBookmark from context
-      const result = await toggleBookmark(id, displayTitle, isAI, {
+      await toggleBookmark(id, displayTitle, isAI, {
         title: displayTitle,
-        image: image,
-        kcal: kcal,
-        prep_time: prep_time,
+        image,
+        kcal,
+        prep_time,
       });
-      
-      console.log(`✅ Bookmark result for ${displayTitle}:`, result);
-      
-      // Refresh bookmarks to keep context in sync
+
       await refreshBookmarks();
-      
-      // Notify parent if needed
+
       if (onBookmarkToggle) {
-        onBookmarkToggle(id, displayTitle, isAI, newState);
+        await onBookmarkToggle(id, displayTitle, isAI, newState);
       }
     } catch (err) {
       console.error("Bookmark error:", err);
-      // ❌ Revert on error
       setLocalSaved(!newState);
     } finally {
       setIsProcessing(false);
@@ -156,7 +150,9 @@ const DashboardRecipeCard = ({
             }`}
             title={localSaved ? "Remove from saved" : "Save Recipe"}
           >
-            <Bookmark className={`h-5 w-5 ${localSaved ? "fill-current" : ""}`} />
+            <Bookmark
+              className={`h-5 w-5 ${localSaved ? "fill-current" : ""}`}
+            />
           </button>
 
           <button
@@ -164,7 +160,7 @@ const DashboardRecipeCard = ({
             className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground transition"
             title="View Details"
           >
-            <Eye className="h-5 w-5" />
+            <Eye size={18} />
           </button>
         </div>
       </div>

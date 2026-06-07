@@ -1,38 +1,65 @@
-import { Calendar } from "lucide-react";
+// meal-planner/components/PlanHeader.jsx
+import { CalendarDays, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const PlanHeader = ({ daysRemaining, weeklyPlan, isExpired }) => {
   return (
     <>
-      <div className="mb-6">
-        <Link to="/" className="text-sm text-muted-foreground hover:text-[#b17b46]">Home</Link>
+      {/* Breadcrumbs Navigation */}
+      <div className="mb-8">
+        <Link
+          to="/"
+          className="text-sm text-muted-foreground hover:text-primary transition-colors"
+        >
+          Dashboard
+        </Link>
         <span className="mx-2 text-muted-foreground">/</span>
-        <span className="text-sm text-foreground">Meal Planner</span>
+        <span className="text-sm text-foreground font-medium">Weekly Plan</span>
       </div>
 
-      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-[#b17b46]/10 rounded-lg">
-              <Calendar className="h-8 w-8 text-[#b17b46]" />
-            </div>
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground">Weekly Meal Plan</h1>
+      {/* Main Header Layout Container */}
+      <div className="mb-10 py-2 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
+          {/* Premium Glossy Calendar Icon Box */}
+          <div className="p-3.5 bg-linear-to-br bg-primary rounded-md border border-red-700/40 shadow-[0_0_15px_rgba(185,28,28,0.15)] shrink-0 backdrop-blur-xs group">
+            <CalendarDays className="h-8 w-8 text-primary-foreground " />
           </div>
-          <p className="text-muted-foreground">
-            Select your preferences to generate a personalized 7-day meal plan.
-          </p>
-          {daysRemaining > 0 && weeklyPlan.length > 0 && !isExpired && (
-            <p className="text-xs text-green-600 mt-1">
-              ✓ Plan active for {daysRemaining} more {daysRemaining === 1 ? 'day' : 'days'}
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground font-display tracking-tight">
+              Weekly Meal Plan
+            </h1>
+            <p className="text-foreground mt-1">
+              Your personalized 7-day meal plan based on your preferences
             </p>
-          )}
-          {isExpired && weeklyPlan.length > 0 && (
-            <p className="text-xs text-red-600 mt-1">
-              ⚠️ This plan has expired. Please generate a new plan.
-            </p>
-          )}
+          </div>
         </div>
+
+        {/* Active Badge */}
+        {weeklyPlan && weeklyPlan.length > 0 && (
+          <div className="self-start md:self-center text-primary-foreground flex items-center gap-2 px-4 py-2 rounded-full bg-primary">
+            <Sparkles
+              className="h-4 w-4 animate-spin"
+              style={{ animationDuration: "3s" }}
+            />
+            {daysRemaining > 0 && !isExpired ? (
+              <span className="text-sm font-bold tracking-wide">
+                Active for{" "}
+                <span className="font-extrabold underline decoration-2">
+                  {daysRemaining}
+                </span>{" "}
+                more {daysRemaining === 1 ? "day" : "days"}
+              </span>
+            ) : isExpired ? (
+              <span className="text-sm font-bold tracking-wide ">
+                Plan expired - Generate new plan
+              </span>
+            ) : null}
+          </div>
+        )}
       </div>
+
+      <hr className="border-border/40 my-4" />
+      {/* 🔴 Yahan se humne sub-heading section hata diya hai taake duplication khatam ho jaye */}
     </>
   );
 };

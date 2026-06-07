@@ -1,102 +1,63 @@
-import { Coffee, IceCream, Flame, Clock, Video, ShoppingBag } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+// meal-planner/components/SideCard.jsx
+import React from "react";
+import { GlassWater, Flame, Clock } from "lucide-react";
 
-const SideCard = ({ side, mealType, onViewVideo, onOrderPandamart, onTitleClick }) => {
-  const navigate = useNavigate();
-  
+const SideCard = ({ side, mealType, onTitleClick }) => {
+  // Agar side object hi na mile toh render na ho
   if (!side) return null;
-  
-  const isDessert = side.type === 'dessert';
-  
-  const handleTitleClick = () => {
-    if (onTitleClick) {
-      onTitleClick(side);
-    } else {
-      const encodedTitle = encodeURIComponent(side.title);
-      navigate(`/recipe/ai/${encodedTitle}`);
-    }
-  };
-  
-  const handleViewVideo = () => {
-    if (onViewVideo) {
-      onViewVideo(side.video_url);
-    }
-  };
-  
-  const handleOrderPandamart = () => {
-    if (onOrderPandamart) {
-      onOrderPandamart(side.title);
-    }
-  };
-  
+
+  // Key checking: Data objects ko clean handle karne ke liye fallbacks lagaye hain
+  const title = side.title || "Drink Item";
+  const description = side.description || "";
+  const calories = side.calories || side.kcal; // handles both keys if dynamic
+  const prepTime = side.prep_time || side.time || side.prepTime; // handles all naming variations
+
   return (
-    <div className="p-5 transition border-b last:border-b-0 border-border">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          {/* Header - Same as MealCard */}
-          <div className="flex items-center gap-2 mb-2">
-            {isDessert ? (
-              <IceCream className="h-4 w-4 text-[#b17b46]" />
-            ) : (
-              <Coffee className="h-4 w-4 text-[#b17b46]" />
-            )}
-            <span className="text-xs font-semibold uppercase tracking-wider text-[#b17b46]">
-              {mealType || (isDessert ? 'Dessert' : 'Drink')}
+    /* 🔴 Image container deleted completely, full padding restored */
+    <div className="p-5 border-4 border-[hsl(var(--primary))] rounded-xl bg-card m-3 transform transition-all duration-300 ease-out hover:-translate-y-1.5 hover:scale-[1.02] hover:shadow-2xl hover:border-primary/75 overflow-hidden">
+      <div className="flex flex-col justify-between min-h-35 h-full">
+        {/* Top Content Block */}
+        <div>
+          {/* Header Tag */}
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-1.5 bg-primary rounded-lg border border-red-900/50">
+              <GlassWater className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <span className="text-xs font-bold uppercase tracking-wider px-3 py-1.5 bg-primary text-primary-foreground rounded-md shadow-sm border border-red-800/60">
+              {mealType || side.type || "DRINK"}
             </span>
           </div>
-          
-          {/* Title - Same font as MealCard */}
+
+          {/* Title Button */}
           <button
-            onClick={handleTitleClick}
+            onClick={() => onTitleClick && onTitleClick(side)}
             className="text-left group w-full"
           >
-            <h3 className="text-lg font-semibold text-foreground mb-2 group-hover:underline group-hover:text-[#b17b46] transition-colors">
-              {side.title}
+            <h3 className="text-lg font-bold text-foreground mb-2 group-hover:underline group-hover:text-primary transition-colors font-display">
+              {title}
             </h3>
           </button>
-          
-          {/* Description - Same as MealCard */}
-          <p className="text-sm text-muted-foreground mb-3">{side.description}</p>
 
-          {/* Badge - Same as MealCard */}
-          <div className="mb-3">
-            <span className={`text-xs px-2 py-1 rounded-full ${
-              isDessert 
-                ? 'bg-amber-100 text-amber-700' 
-                : 'bg-teal-100 text-teal-700'
-            }`}>
-              {isDessert ? '🍰 Dessert' : '🥤 Drink'}
-            </span>
-          </div>
+          {/* Description */}
+          <p className="text-sm text-muted-foreground mb-4 font-sans leading-relaxed">
+            {description}
+          </p>
+        </div>
 
-          {/* Calories & Prep Time - Same as MealCard */}
-          <div className="flex gap-4 text-xs mb-3">
-            <div className="flex items-center gap-1">
-              <Flame className="h-3 w-3 text-muted-foreground" />
-              <span>{side.calories || (isDessert ? '250' : '120')} kcal</span>
+        {/* 🔴 FIXED: Bottom Metrics Section (Calories & Prep Time now forced to show) */}
+        <div className="mt-auto pt-2 border-t border-border/20">
+          <div className="flex gap-5 text-xs font-sans font-semibold text-muted-foreground">
+            {/* Calories Block */}
+            <div className="flex items-center gap-1.5 bg-amber-950/20 px-2 py-1 rounded border border-amber-900/30">
+              <Flame className="h-4 w-4 text-amber-500" />
+              <span>{calories ? `${calories} kcal` : "120 kcal"}</span>
             </div>
-            <div className="flex items-center gap-1">
-              <Clock className="h-3 w-3 text-muted-foreground" />
-              <span>{side.prep_time || (isDessert ? '15' : '5')} mins</span>
-            </div>
-          </div>
 
-          {/* Action Buttons - Same as MealCard */}
-          <div className="flex gap-3">
-            <button
-              onClick={handleViewVideo}
-              className="flex items-center gap-1 text-xs text-[#b17b46] hover:text-[#8B5E3C] transition"
-            >
-              <Video className="h-3 w-3" />
-              Watch Video
-            </button>
-            <button
-              onClick={handleOrderPandamart}
-              className="flex items-center gap-1 text-xs text-[#b17b46] hover:text-[#8B5E3C] transition"
-            >
-              <ShoppingBag className="h-3 w-3" />
-              Order on Pandamart
-            </button>
+            {/* Prep Time Block */}
+            <div className="flex items-center gap-1.5 bg-blue-950/20 px-2 py-1 rounded border border-blue-900/30">
+              <Clock className="h-4 w-4 text-blue-400" />
+              <span>{prepTime ? `${prepTime} mins` : "5 mins"}</span>
+            </div>
           </div>
         </div>
       </div>

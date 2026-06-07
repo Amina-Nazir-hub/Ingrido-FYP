@@ -19,8 +19,11 @@ export function RecipeDetailPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const titleParam = searchParams.get("title");
-  
-  const { recipe, loading, isAiGenerated, error, retry } = useRecipeDetail(id, titleParam);
+
+  const { recipe, loading, isAiGenerated, error, retry } = useRecipeDetail(
+    id,
+    titleParam,
+  );
   const {
     ingredientSearch,
     setIngredientSearch,
@@ -40,7 +43,9 @@ export function RecipeDetailPage() {
           <div className="bg-red-50 rounded-full h-16 w-16 flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="h-8 w-8 text-red-500" />
           </div>
-          <h2 className="text-xl font-bold text-foreground mb-2">Recipe not found</h2>
+          <h2 className="text-xl font-bold text-foreground mb-2">
+            Recipe not found
+          </h2>
           <p className="text-muted-foreground mb-6">
             {error || "Unable to load recipe. Please try again."}
           </p>
@@ -64,9 +69,18 @@ export function RecipeDetailPage() {
   }
 
   const displayTitle = recipe.title || recipe.meal || "Tasty Recipe";
+<<<<<<< HEAD
+
+  // ✅ IMPORTANT FIX: Get the correct ID
+  let recipeId = null;
+  let isAIRecipe = isAiGenerated;
+
+  // Check if it's AI recipe
+=======
   let recipeId = null;
   let isAIRecipe = isAiGenerated;
   
+>>>>>>> origin/main
   if (isAiGenerated || (id && id.toString().startsWith("ai-")) || titleParam) {
     isAIRecipe = true;
     recipeId = displayTitle; 
@@ -74,27 +88,31 @@ export function RecipeDetailPage() {
   
     recipeId = recipe.id || id;
   }
-  
-  console.log("RecipeDetailPage - Passing to Header:", { 
-    recipeId, 
-    displayTitle, 
+
+  console.log("RecipeDetailPage - Passing to Header:", {
+    recipeId,
+    displayTitle,
     isAIRecipe,
     originalId: id,
-    recipeIdFromData: recipe.id 
+    recipeIdFromData: recipe.id,
   });
 
   return (
     <>
       <RecipeHeader
         title={displayTitle}
+<<<<<<< HEAD
+        id={recipeId} // ✅ Pass correct ID (not undefined)
+=======
         id={recipeId}  
+>>>>>>> origin/main
         isAiGenerated={isAIRecipe}
         onBack={() => navigate(-1)}
       />
 
       <section className="container mx-auto max-w-6xl mt-10 grid gap-10 lg:grid-cols-[1.4fr_1fr] px-4">
         <RecipeMedia recipe={recipe} displayTitle={displayTitle} />
-        
+
         <div className="space-y-6">
           <RecipeInfo recipe={recipe} isAiGenerated={isAIRecipe} />
           <RecipeDescription recipe={recipe} displayTitle={displayTitle} />
@@ -102,7 +120,7 @@ export function RecipeDetailPage() {
       </section>
 
       <section className="container mx-auto max-w-6xl mt-12 px-4">
-        <div className="rounded-2xl border border-border bg-card shadow-md overflow-hidden grid md:grid-cols-2">
+        <div className="rounded-2xl border-4 border-primary bg-card shadow-md overflow-hidden grid md:grid-cols-2">
           <IngredientsList ingredients={recipe.ingredients} />
           <DirectionsList instructions={recipe.instructions} />
         </div>

@@ -63,7 +63,11 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'ingrido_db',
         'USER': 'postgres',
+<<<<<<< HEAD
         'PASSWORD': 'taibajutt18'
+=======
+        'PASSWORD': 'pakpost000'
+>>>>>>> origin/main
     }
 }
 

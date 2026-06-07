@@ -21,7 +21,7 @@ const RecipeMedia = ({ recipe, displayTitle }) => {
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-primary/20 to-secondary flex items-center justify-center">
+          <div className="w-full h-full bg-linear-to-br from-primary/20 to-secondary flex items-center justify-center">
             <Utensils className="h-20 w-20 text-muted-foreground" />
           </div>
         )}

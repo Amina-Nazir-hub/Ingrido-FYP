@@ -1,7 +1,14 @@
 import { useState } from "react";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 
-const LoginForm = ({ email, password, onEmailChange, onPasswordChange, onSubmit, isLoading }) => {
+const LoginForm = ({
+  email,
+  password,
+  onEmailChange,
+  onPasswordChange,
+  onSubmit,
+  isLoading,
+}) => {
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = (e) => {
@@ -12,7 +19,7 @@ const LoginForm = ({ email, password, onEmailChange, onPasswordChange, onSubmit,
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="space-y-2">
-        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 ml-1 uppercase tracking-wider">
+        <label className="text-xs font-bold text-foreground ml-1 uppercase tracking-wider">
           Email Address
         </label>
         <div className="relative">
@@ -22,7 +29,7 @@ const LoginForm = ({ email, password, onEmailChange, onPasswordChange, onSubmit,
             name="email"
             value={email}
             onChange={(e) => onEmailChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-500 dark:focus:ring-amber-500 focus:border-transparent outline-none transition-all duration-200"
+            className="w-full pl-10 pr-4 py-3 text-muted-foreground rounded-xl border-border-gray-200  transition-all duration-200"
             placeholder="name@example.com"
             required
             disabled={isLoading}
@@ -31,7 +38,7 @@ const LoginForm = ({ email, password, onEmailChange, onPasswordChange, onSubmit,
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 ml-1 uppercase tracking-wider">
+        <label className="text-xs font-bold text-foreground ml-1 uppercase tracking-wider">
           Password
         </label>
         <div className="relative">
@@ -59,7 +66,7 @@ const LoginForm = ({ email, password, onEmailChange, onPasswordChange, onSubmit,
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full py-3.5 bg-gradient-to-r from-amber-600 to-amber-500 text-white rounded-xl font-bold hover:from-amber-700 hover:to-amber-600 shadow-md transition-all duration-200 active:scale-95 mt-6 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
+        className="w-full py-3.5 bg-linear-to-r bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/75 shadow-md transition-all duration-200 active:scale-95 mt-6 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 cursor-pointer"
       >
         {isLoading ? (
           <div className="flex items-center justify-center gap-2">
