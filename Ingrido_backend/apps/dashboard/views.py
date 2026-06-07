@@ -11,7 +11,6 @@ from apps.recipes.serializers import RecipeListSerializer
 from apps.recipes.services import get_groq_client
 from apps.common.services import get_ai_generated_image
 
-
 def get_current_season():
     """Get current season based on month"""
     month = datetime.now().month
