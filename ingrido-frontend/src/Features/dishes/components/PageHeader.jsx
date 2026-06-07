@@ -14,13 +14,13 @@ const PageHeader = ({ cityName, region }) => {
 
       <header className="mb-10">
         <div className="flex items-center gap-2 mb-2">
-          <span className="h-px w-8 bg-[#b17b46]"></span>
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#b17b46]">
+          <span className="h-px w-8 bg-primary"></span>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">
             {region || "Traditional Cuisine"}
           </p>
         </div>
         <h1 className="text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl">
-          Famous Recipes of <span className="text-[#b17b46]">{cityName}</span>
+          Famous Recipes of <span className="text-primary">{cityName}</span>
         </h1>
       </header>
     </>

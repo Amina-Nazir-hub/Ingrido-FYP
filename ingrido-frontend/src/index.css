@@ -177,7 +177,7 @@
       --muted-foreground: 0 0% 65%;
       --accent: 346 100% 21%;
       --accent-foreground: 0 0% 100%;
-      --destructive: 0 70% 50%;
+      --destructive: 0 100% 50%;
       --destructive-foreground: 0 0% 100%;
       --border: 0 0% 18%;
       --input: 0 0% 18%;
@@ -652,6 +652,200 @@
       scroll-behavior: auto !important;
     }
   }
+}
+
+/* ============================================ */
+/* SWEETALERT2 CUSTOM STYLES */
+/* ============================================ */
+
+.swal2-popup {
+  font-family: var(--font-sans) !important;
+  border-radius: 1.5rem !important;
+  padding: 2rem !important;
+  background-color: hsl(var(--card)) !important;
+  color: hsl(var(--card-foreground)) !important;
+  box-shadow: var(--shadow-modal) !important;
+  border: 2px solid hsl(var(--primary)) !important;
+}
+
+.swal2-title {
+  font-family: var(--font-display) !important;
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  color: hsl(var(--foreground)) !important;
+  letter-spacing: -0.025em !important;
+}
+
+.swal2-html-container {
+  font-size: 0.95rem !important;
+  color: hsl(var(--muted-foreground)) !important;
+  line-height: 1.5 !important;
+}
+
+.swal2-confirm {
+  background-color: hsl(var(--primary)) !important;
+  color: hsl(var(--primary-foreground)) !important;
+  border-radius: 0.5rem !important;
+  padding: 0.625rem 1.5rem !important;
+  font-weight: 500 !important;
+  font-family: var(--font-sans) !important;
+  transition: all 0.2s ease !important;
+  border: none !important;
+}
+
+.swal2-confirm:hover {
+  background-color: hsl(var(--primary) / 0.9) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(109, 0, 26, 0.2) !important;
+}
+
+.swal2-cancel {
+  background-color: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-radius: 0.5rem !important;
+  padding: 0.625rem 1.5rem !important;
+  font-weight: 500 !important;
+  font-family: var(--font-sans) !important;
+  transition: all 0.2s ease !important;
+  border: 1px solid hsl(var(--border)) !important;
+}
+
+.swal2-cancel:hover {
+  background-color: hsl(var(--muted) / 0.8) !important;
+  transform: translateY(-1px) !important;
+}
+
+.swal2-icon {
+  border-width: 3px !important;
+}
+
+.swal2-icon.swal2-error {
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
+}
+
+.swal2-icon.swal2-success {
+  border-color: #10b981 !important;
+  color: #10b981 !important;
+}
+
+.swal2-icon.swal2-warning {
+  border-color: #f59e0b !important;
+  color: #f59e0b !important;
+}
+
+.swal2-icon.swal2-info {
+  border-color: #0ea5e9 !important;
+  color: #0ea5e9 !important;
+}
+
+.swal2-icon.swal2-question {
+  border-color: #8b5cf6 !important;
+  color: #8b5cf6 !important;
+}
+
+.swal2-icon-content {
+  font-size: 3rem !important;
+}
+
+.swal2-backdrop {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+.swal2-timer-progress-bar {
+  background: linear-gradient(90deg, hsl(var(--primary)), #10b981) !important;
+}
+
+.swal2-close {
+  color: hsl(var(--muted-foreground)) !important;
+  transition: all 0.2s ease !important;
+}
+
+.swal2-close:hover {
+  color: hsl(var(--foreground)) !important;
+  transform: scale(1.1) !important;
+}
+
+.swal2-loading {
+  border-color: hsl(var(--primary)) !important;
+  border-top-color: transparent !important;
+}
+
+/* Dark mode specific styles for SweetAlert2 */
+@media (prefers-color-scheme: dark) {
+  .swal2-popup {
+    background-color: hsl(var(--card)) !important;
+    border-color: hsl(var(--primary)) !important;
+  }
+  
+  .swal2-title {
+    color: hsl(var(--foreground)) !important;
+  }
+  
+  .swal2-html-container {
+    color: hsl(var(--muted-foreground)) !important;
+  }
+  
+  .swal2-close {
+    color: hsl(var(--muted-foreground)) !important;
+  }
+  
+  .swal2-close:hover {
+    color: hsl(var(--foreground)) !important;
+  }
+}
+
+/* Animation for SweetAlert2 */
+@keyframes swal2-show {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes swal2-hide {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+}
+
+.swal2-show {
+  animation: swal2-show 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards !important;
+}
+
+.swal2-hide {
+  animation: swal2-hide 0.2s ease-out forwards !important;
+}
+
+/* Custom styling for input fields inside SweetAlert */
+.swal2-input {
+  background-color: hsl(var(--card)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-radius: 0.5rem !important;
+  font-family: var(--font-sans) !important;
+}
+
+.swal2-input:focus {
+  border-color: hsl(var(--ring)) !important;
+  box-shadow: 0 0 0 2px hsl(var(--ring)) !important;
+}
+
+.swal2-validation-message {
+  background-color: hsl(var(--destructive) / 0.1) !important;
+  color: hsl(var(--destructive)) !important;
+  border-radius: 0.5rem !important;
+  font-family: var(--font-sans) !important;
 }
 
 @media print {

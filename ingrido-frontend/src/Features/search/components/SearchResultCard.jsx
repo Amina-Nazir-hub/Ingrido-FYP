@@ -25,12 +25,6 @@ const SearchResultCard = ({
 
   return (
     <article className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg relative">
-      {isAI && (
-        <div className="absolute top-3 left-3 z-10 bg-purple-600 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md shadow-md flex items-center gap-1">
-          <Sparkles size={10} /> AI Generated
-        </div>
-      )}
-
       <div className="aspect-video w-full overflow-hidden bg-muted relative">
         <img
           src={imageUrl}
@@ -44,20 +38,20 @@ const SearchResultCard = ({
         <h3 className="text-lg font-bold text-foreground line-clamp-1">{displayTitle}</h3>
 
         <div className="grid grid-cols-3 gap-2 text-xs">
-          <div className="flex flex-col items-center rounded-md bg-secondary p-2">
-            <Flame className="mb-1 h-4 w-4 text-muted-foreground" />
+          <div className="flex flex-col items-center rounded-md bg-primary p-2">
+            <Flame className="mb-1 h-4 w-4 text-orange-500" />
             <span className="font-semibold text-foreground">{kcal || "350"}</span>
             <span className="text-muted-foreground">kcal</span>
           </div>
 
-          <div className="flex flex-col items-center rounded-md bg-secondary p-2">
-            <Clock className="mb-1 h-4 w-4 text-muted-foreground" />
+          <div className="flex flex-col items-center rounded-md bg-primary p-2">
+            <Clock className="mb-1 h-4 w-4 text-blue-500" />
             <span className="font-semibold text-foreground">{prep_time || "25"}</span>
             <span className="text-muted-foreground">mins</span>
           </div>
 
-          <div className="flex flex-col items-center rounded-md bg-secondary p-2">
-            <Drumstick className="mb-1 h-4 w-4 text-muted-foreground" />
+          <div className="flex flex-col items-center rounded-md bg-primary p-2">
+            <Drumstick className="mb-1 h-4 w-4 text-green-600" />
             <span className="font-semibold text-foreground">{protein || "20g"}</span>
             <span className="text-muted-foreground">protein</span>
           </div>
@@ -68,8 +62,8 @@ const SearchResultCard = ({
             onClick={() => onBookmark(id, displayTitle, isAI)}
             className={`rounded-md p-2 transition ${
               is_saved
-                ? "text-[#b17b46] bg-[#b17b46]/10"
-                : "text-muted-foreground hover:bg-secondary hover:text-[#b17b46]"
+                ? "text-primary-foreground bg-primary hover:bg-primary/75"
+                : "text-muted-foreground hover:bg-primary hover:text-primary-foreground"
             }`}
             title={is_saved ? "Remove from saved" : "Save Recipe"}
           >
@@ -78,7 +72,7 @@ const SearchResultCard = ({
 
           <button
             onClick={() => onViewDetail(id, displayTitle, isAI)}
-            className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-foreground transition"
+            className="rounded-md p-2 text-muted-foreground hover:bg-primary hover:text-primary-foreground transition"
             title="View Details"
           >
             <Eye className="h-5 w-5" />

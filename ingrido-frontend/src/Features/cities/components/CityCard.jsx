@@ -40,7 +40,7 @@ const CityCard = ({ city }) => {
         </h3>
         <p className="mt-2 text-sm text-muted-foreground">
           Discover authentic recipes and traditional dishes from{" "}
-          <span className="text-secondary font-bold">
+          <span className="text-muted-foreground font-bold">
             {city.name}, {city.region}
           </span>
           .
@@ -78,7 +78,7 @@ const CityCard = ({ city }) => {
 
           <button
             onClick={handleExplore}
-            className="flex items-center gap-2 bg-[#b17b46] text-white px-5 py-2.5 rounded-lg text-xs font-bold hover:brightness-110 active:scale-95 transition-all uppercase tracking-wider"
+            className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-lg text-xs font-bold hover:bg-primary/75 active:scale-95 transition-all uppercase tracking-wider cursor-pointer"
           >
             <Eye size={14} /> Explore
           </button>

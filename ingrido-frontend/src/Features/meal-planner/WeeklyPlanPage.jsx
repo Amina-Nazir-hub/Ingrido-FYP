@@ -37,6 +37,8 @@ const WeeklyPlanPage = () => {
     handleOrderPandamart,
     handleClearAndStartOver,
     handleDeletePlan,
+    handleRegenerateConfirm,
+    handlePlanExpired,
   } = useMealActions();
 
   const handleRecipeTitleClick = (meal) => {
@@ -49,6 +51,19 @@ const WeeklyPlanPage = () => {
     console.log("Navigating to recipe:", meal.title);
 
     navigate(`/recipe/ai/${encodedTitle}`);
+  };
+
+  const handleRegenerateClick = async () => {
+    const success = await handleRegenerateConfirm(regeneratePlan);
+    if (success) {
+      // Scroll to meal plan after regeneration
+      setTimeout(() => {
+        const mealPlanElement = document.getElementById("meal-plan");
+        if (mealPlanElement) {
+          mealPlanElement.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 500);
+    }
   };
 
   if (isLoading) {
@@ -66,13 +81,14 @@ const WeeklyPlanPage = () => {
 
         {weeklyPlan.length > 0 && !isExpired && (
           <PlanActions
-            onRegenerate={regeneratePlan}
+            onRegenerate={handleRegenerateClick}
             onDelete={() => handleDeletePlan(deletePlan, currentPlanId)}
             generating={generating}
           />
         )}
 
-        <ErrorState error={error} onDismiss={() => setError(null)} />
+        {/* ErrorState component - can be removed since we're using SweetAlert2 */}
+        {/* <ErrorState error={error} onDismiss={() => setError(null)} /> */}
 
         {(weeklyPlan.length === 0 || isExpired) && (
           <PreferencesSection
@@ -85,7 +101,7 @@ const WeeklyPlanPage = () => {
 
         {generating && (
           <div className="text-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-[#b17b46] mx-auto mb-3" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-3" />
             <p className="text-muted-foreground">
               Creating your personalized 7-day plan...
             </p>
@@ -95,7 +111,6 @@ const WeeklyPlanPage = () => {
         {weeklyPlan.length > 0 && !generating && !isExpired && (
           <div id="meal-plan" className="space-y-6 mt-10">
             <div className="flex items-center gap-2 mb-6">
-              {/* 🔴 Line color updated here */}
               <div className="h-1.5 w-12 bg-[hsl(var(--primary))] rounded-full shadow-sm"></div>
               <h2 className="text-2xl font-bold">Your Weekly Meal Plan</h2>
             </div>
@@ -106,14 +121,14 @@ const WeeklyPlanPage = () => {
                 dayData={day}
                 onViewVideo={handleViewVideo}
                 onOrderPandamart={handleOrderPandamart}
-                onRecipeTitleClick={handleRecipeTitleClick} // ✅ Use the local function
+                onRecipeTitleClick={handleRecipeTitleClick}
               />
             ))}
 
             <div className="mt-10 text-center">
               <button
                 onClick={() => handleClearAndStartOver(clearPlan)}
-                className="px-6 py-2 border-2 border-gray-400 text-gray-600 rounded-lg hover:bg-gray-100 transition"
+                className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/75 transition cursor-pointer font-bold"
               >
                 Clear Plan & Start Over
               </button>
@@ -128,10 +143,7 @@ const WeeklyPlanPage = () => {
               Your previous meal plan has expired after 7 days.
             </p>
             <button
-              onClick={() => {
-                clearPlan();
-                window.scrollTo({ top: 0, behavior: "smooth" });
-              }}
+              onClick={() => handlePlanExpired(clearPlan)}
               className="px-6 py-2 bg-[#b17b46] text-white rounded-lg hover:bg-[#8B5E3C] transition"
             >
               Create New Plan

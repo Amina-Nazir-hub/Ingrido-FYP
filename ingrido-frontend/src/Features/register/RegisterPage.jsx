@@ -2,7 +2,6 @@ import React from "react";
 import RegisterHeader from "./components/RegisterHeader";
 import RegisterForm from "./components/RegisterForm";
 import { useRegisterForm } from "./hooks/useRegisterForm";
-import { AlertCircle } from "lucide-react";
 
 const RegisterPage = () => {
   const {
@@ -14,8 +13,9 @@ const RegisterPage = () => {
     isPasswordValid,
     isPasswordFocused,
     setIsPasswordFocused,
-    isLoading = { isLoading },
+    isLoading,
     error,
+    setError,
   } = useRegisterForm();
 
   return (
@@ -23,19 +23,6 @@ const RegisterPage = () => {
       <div className="w-full max-w-2xl animate-fade-up">
         <div className="bg-card p-8 md:p-12 rounded-3xl shadow-card border-2 border-primary">
           <RegisterHeader />
-
-          {error && (
-            <div className="mb-6 p-3 rounded-xl bg-red-50 border border-red-200 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
-              <p className="text-sm text-red-600 font-medium">{error}</p>
-              <button
-                onClick={() => setError("")}
-                className="ml-auto text-red-500 hover:text-red-700 transition-colors"
-              >
-                ×
-              </button>
-            </div>
-          )}
 
           <RegisterForm
             formData={formData}

@@ -29,7 +29,7 @@ const LoginForm = ({
             name="email"
             value={email}
             onChange={(e) => onEmailChange(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 text-muted-foreground rounded-xl border-border-gray-200  transition-all duration-200"
+            className="w-full pl-10 pr-4 py-3 text-background bg-primary-foreground rounded-xl border-border-gray-200  transition-all duration-200"
             placeholder="name@example.com"
             required
             disabled={isLoading}
@@ -48,7 +48,7 @@ const LoginForm = ({
             name="password"
             value={password}
             onChange={(e) => onPasswordChange(e.target.value)}
-            className="w-full pl-10 pr-12 py-3 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-amber-500 dark:focus:ring-amber-500 focus:border-transparent outline-none transition-all duration-200"
+            className="w-full pl-10 pr-4 py-3 text-background bg-primary-foreground rounded-xl border-border-gray-200  transition-all duration-200"
             placeholder="••••••••"
             required
             disabled={isLoading}

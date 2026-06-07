@@ -9,8 +9,12 @@ export function Footer() {
         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
           {/* Brand Logo */}
           <div className="flex items-center gap-2 group cursor-pointer">
-            <div className="p-2 bg-primary rounded-lg group-hover:bg-primary/20 transition-colors">
-              <UtensilsCrossed className="h-5 w-5 text-primary-foreground" />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg bg-primary-foreground">
+              <img
+                className="w-7 h-7"
+                src="/android-chrome-192x192.png"
+                alt="Ingrido Logo"
+              />
             </div>
             <span className="font-display text-primary-foreground text-xl font-bold tracking-tight">
               Ingrido

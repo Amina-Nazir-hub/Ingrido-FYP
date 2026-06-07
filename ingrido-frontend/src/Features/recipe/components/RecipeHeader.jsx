@@ -6,15 +6,8 @@ const RecipeHeader = ({ title, id, isAiGenerated, onBack }) => {
   const { isBookmarked, toggleBookmark } = useBookmark();
   const [isLoading, setIsLoading] = useState(false);
 
-<<<<<<< HEAD
   // ✅ Debug log to see what's coming in
   console.log("RecipeHeader received:", { title, id, isAiGenerated });
-
-  // ✅ Make sure we have valid id
-=======
-  console.log("RecipeHeader received:", { title, id, isAiGenerated });
-
->>>>>>> origin/main
   const validId = id || (isAiGenerated ? title : null);
 
   if (!validId && !isAiGenerated) {
@@ -41,12 +34,6 @@ const RecipeHeader = ({ title, id, isAiGenerated, onBack }) => {
       <div className="container py-8 mx-auto max-w-6xl ">
         <div className="flex items-center justify-between gap-6 rounded-2xl bg-card p-6 shadow-sm md:p-8 border">
           <div className="flex-1">
-            <button
-              onClick={onBack}
-              className="flex items-center gap-2 text-muted-foreground hover:text-primary mb-2 transition"
-            >
-              <ArrowLeft className="h-4 w-4" /> Back
-            </button>
             <h1 className="font-serif text-3xl font-bold text-foreground md:text-4xl lg:text-5xl leading-tight">
               {title}
             </h1>

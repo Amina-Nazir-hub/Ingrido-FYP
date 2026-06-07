@@ -60,12 +60,6 @@ const SavedRecipeCard = ({ recipe, onUnsave, isRemoving }) => {
 
   return (
     <article className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg relative">
-      {isAiGenerated && (
-        <div className="absolute top-3 left-3 z-10 bg-purple-600 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md shadow-md flex items-center gap-1">
-          <Sparkles size={10} /> AI Generated
-        </div>
-      )}
-
       <div className="aspect-video w-full overflow-hidden bg-muted relative">
         <img
           src={imageUrl}
@@ -126,7 +120,7 @@ const SavedRecipeCard = ({ recipe, onUnsave, isRemoving }) => {
           <button
             onClick={handleUnsaveClick}
             disabled={isRemovingLocal || isRemoving}
-            className="rounded-md p-2 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50 cursor-pointer"
+            className="rounded-md p-2 text-primary-foreground hover:bg-primary/75 bg-primary transition-colors disabled:opacity-50 cursor-pointer"
             title="Remove from saved"
           >
             {isRemovingLocal || isRemoving ? (

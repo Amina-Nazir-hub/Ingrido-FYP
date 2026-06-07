@@ -309,13 +309,13 @@ YOUR JOB:
      Suggest 1-2 practical substitutes that work in Pakistani cooking.
 
 EXAMPLES:
-- For "green chili" when essential: "Green chili is essential for the heat in this dish. Please buy fresh green chilies from any store."
+- For "green chili" when it's essential: "Green chili is essential for the heat in this dish. Please buy fresh green chilies from any store."
 - For "green chili" when optional: "Green chili adds heat. You can use red chili powder (1/4 tsp per chili) or skip it."
 - For "cream" when optional: "Use fresh malai or full-fat coconut milk instead of cream."
 - For "onion": "Onion is essential. Please buy fresh onions."
 - For "turmeric": "Turmeric is essential for color and flavor. Please buy from store - it's very cheap."
 - For "garam masala": "Garam masala is essential for authentic flavor. Please buy from any grocery store."
-- For "cardamom": "Cardamom adds aroma. You can skip it or use cinnamon stick as substitute."
+- For "cardamom": "Cardamom adds aroma. You can skip it or use a cinnamon stick as a substitute."
 
 Keep response SHORT (1-2 sentences). Be honest and practical.
 
@@ -357,72 +357,107 @@ Your response:"""
             "status": "error",
             "message": "AI service error. Please check your API key."
         }, status=500)
-    
+
 # ========== AI SEARCH ==========
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def search_ai_recipes_list(request):
-    """Search recipes using AI"""
+    """Search recipes using AI by combining all input ingredients into unified dishes"""
     query = request.query_params.get('q', '').strip()
     groq_client = get_groq_client()
     
     if not query or len(query) < 2:
         return Response([], status=200)
 
+    # 1. Pehle database se lookup karein
     db_recipes = Recipe.objects.filter(
         Q(title__icontains=query) | 
-        Q(ingredients__icontains=query) | 
-        Q(description__icontains=query)
-    )[:6]
+        Q(ingredients__icontains=query)
+    )[:4]
     
     db_serialized = RecipeListSerializer(db_recipes, many=True, context={'request': request}).data
     for item in db_serialized:
         item['is_ai_generated'] = False
     
+    # Agar exact match database mein kafi hain, to direct bhejien
     if len(db_recipes) >= 3 or not groq_client:
         return Response(db_serialized)
 
-    prompt = f"""The user is searching for "{query}" in a Pakistani Recipe App.
-    Generate a list of 3 to 5 popular Pakistani dishes related to "{query}".
-    Return ONLY valid JSON array: [{{"title":"name","kcal":380,"prep_time":30}}]"""
+    # 2. Strict Unified Prompt (Combines ingredients into real dishes)
+    prompt = f"""You are a precise backend API for a Pakistani Recipe App. 
+The user has entered these input ingredient(s): "{query}".
+
+### CRITICAL RULES:
+1. **COMBINE INGREDIENTS:** Do NOT generate separate recipes for each ingredient. You must only suggest 3 to 5 authentic traditional Pakistani dishes where ALL (or the main) ingredients listed in "{query}" are cooked TOGETHER in the same dish.
+2. **STRICT PAKISTANI AUTHENTICITY:** The dishes must be real, well-known recipes featured on authentic platforms like 'Food Fusion' or 'SooperChef' (e.g., if input is "aloo, gobi, carrot", the dish should be "Pakistani Mixed Sabzi Masala"). 
+3. **INVALID COMBINATIONS:** If the combination of ingredients in "{query}" makes no sense in traditional Pakistani cooking, or contains non-food junk words, you MUST return a completely empty JSON array `[]`. Do not make up fake fusion dishes.
+4. **DYNAMIC ACCURACY:** Calculate realistic 'kcal' and 'prep_time' integers based on that specific combined dish.
+5. **OUTPUT:** Return ONLY a valid JSON array. No conversational text, no explanations.
+
+### JSON Schema:
+[
+  {{
+    "title": "Exact Authentic Combined Dish Name",
+    "kcal": 420, 
+    "prep_time": 35
+  }}
+]
+
+### User Query:
+"{query}" """
 
     try:
         completion = groq_client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[
-                {"role": "system", "content": "You are an expert Pakistani chef. Output ONLY valid JSON arrays."},
+                {"role": "system", "content": "You are a strict Pakistani chef API. Output ONLY valid JSON arrays. If the combination of ingredients doesn't make a real Pakistani dish, return []."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.7
+            temperature=0.0,  # Zero creativity taake bongian bilkul khatam ho jayein
+            max_tokens=300
         )
         
         response_text = completion.choices[0].message.content.strip()
         json_match = re.search(r'\[.*\]', response_text, re.DOTALL)
+        
         if not json_match:
             return Response(db_serialized)
             
         ai_recipes = json.loads(json_match.group())
         
+        if not isinstance(ai_recipes, list) or len(ai_recipes) == 0:
+            return Response(db_serialized)
+        
+        formatted_ai_recipes = []
         for idx, item in enumerate(ai_recipes):
-            item['id'] = f"ai-{idx}-{random.randint(1000, 9999)}"
-            item['is_ai_generated'] = True
-            item['is_saved'] = False
+            if not isinstance(item, dict) or 'title' not in item:
+                continue
+            
+            dish_title = item.get('title')
+
+            ai_item = {
+                'id': f"ai-{idx}-{random.randint(1000, 9999)}",
+                'title': dish_title,
+                'is_ai_generated': True,
+                'is_saved': False,
+                'meal': dish_title,
+                'image': get_ai_generated_image(dish_title)  # Har unique dish ka alag image trigger hoga
+            }
             
             try:
-                item['kcal'] = int(item.get('kcal', 350))
+                ai_item['kcal'] = int(item.get('kcal', 380))
             except (ValueError, TypeError):
-                item['kcal'] = 350
+                ai_item['kcal'] = 380
 
             try:
-                item['prep_time'] = int(item.get('prep_time', 25))
+                ai_item['prep_time'] = int(item.get('prep_time', 30))
             except (ValueError, TypeError):
-                item['prep_time'] = 25
-
-            item['meal'] = item['title']
-            item['image'] = get_ai_generated_image(item['title'])
+                ai_item['prep_time'] = 30
+                
+            formatted_ai_recipes.append(ai_item)
         
-        return Response(db_serialized + ai_recipes)
+        return Response(db_serialized + formatted_ai_recipes)
         
     except Exception as e:
         print(f"AI search error: {e}")

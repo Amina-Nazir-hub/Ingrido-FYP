@@ -110,28 +110,28 @@ const DashboardRecipeCard = ({
 
         {/* Nutritional Stats Grid - Cleaned & Structured */}
         <div className="grid grid-cols-3 gap-2 text-xs">
-          <div className="flex flex-col items-center bg-secondary p-2 rounded-md">
+          <div className="flex flex-col items-center bg-primary p-2 rounded-md">
             <Flame className="h-4 w-4 text-orange-500 mb-1" />
-            <span className="font-semibold text-foreground">
+            <span className="font-semibold text-primary-foreground">
               {kcal || "350"}
             </span>
-            <span className="text-muted-foreground">kcal</span>
+            <span className="text-primary-foreground">kcal</span>
           </div>
 
-          <div className="flex flex-col items-center bg-secondary p-2 rounded-md">
+          <div className="flex flex-col items-center bg-primary p-2 rounded-md">
             <Clock className="h-4 w-4 text-blue-500 mb-1" />
-            <span className="font-semibold text-foreground">
+            <span className="font-semibold text-primary-foreground">
               {prep_time || "25"}
             </span>
-            <span className="text-muted-foreground">mins</span>
+            <span className="text-primary-foreground">mins</span>
           </div>
 
-          <div className="flex flex-col items-center bg-secondary p-2 rounded-md">
+          <div className="flex flex-col items-center bg-primary p-2 rounded-md">
             <Drumstick className="h-4 w-4 text-green-600 mb-1" />
-            <span className="font-semibold text-foreground">
+            <span className="font-semibold text-primary-foreground">
               {protein || "20g"}
             </span>
-            <span className="text-muted-foreground">protein</span>
+            <span className="text-primary-foreground">protein</span>
           </div>
         </div>
 
@@ -141,8 +141,8 @@ const DashboardRecipeCard = ({
             onClick={handleBookmark}
             className={`p-2 rounded-md transition cursor-pointer ${
               isSaved
-                ? "text-amber-600 bg-amber-50 dark:bg-amber-950/40"
-                : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                ? "text-primary-foreground bg-primary hover:bg-primary/75"
+                : "text-muted-foreground hover:bg-primary hover:text-primary-foreground"
             }`}
           >
             <Bookmark className={`h-5 w-5 ${isSaved ? "fill-current" : ""}`} />
@@ -150,7 +150,7 @@ const DashboardRecipeCard = ({
 
           <button
             onClick={handleViewDetail}
-            className="p-2 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition cursor-pointer"
+            className="p-2 rounded-md text-muted-foreground hover:bg-primary hover:text-primary-foreground transition cursor-pointer"
             title="View Details"
           >
             <Eye size={18} />

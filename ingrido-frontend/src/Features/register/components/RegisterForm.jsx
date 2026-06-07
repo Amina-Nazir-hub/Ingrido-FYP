@@ -29,7 +29,7 @@ const RegisterForm = ({
             name="name"
             value={formData.name}
             onChange={onInputChange}
-            className="w-full rounded-md border border-input bg-primary-foreground px-4 py-3 outline-none focus:ring-2 focus:ring-primary/20 transition-all text-primary-foreground placeholder-muted-foreground"
+            className="w-full rounded-md border border-input bg-primary-foreground px-4 py-3 outline-none focus:ring-2 focus:ring-primary/20 transition-all text-background placeholder-muted-foreground"
             placeholder="Enter your full name"
             required
             disabled={isLoading}
@@ -37,16 +37,15 @@ const RegisterForm = ({
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-semibold flex items-center gap-2 text-foreground">
+          <label className="text-sm font-semibold flex items-center gap-2 ">
             <Mail className="h-4 w-4 text-secondary" /> Email Address
           </label>
-          {/* Changed bg-background to bg-primary-foreground */}
           <input
             type="email"
             name="email"
             value={formData.email}
             onChange={onInputChange}
-            className="w-full rounded-md border border-input bg-primary-foreground px-4 py-3 outline-none focus:ring-2 focus:ring-primary/20 focus:text-foreground transition-all text-foreground placeholder-muted-foreground"
+            className="w-full rounded-md border border-input bg-primary-foreground px-4 py-3 pr-12 outline-none focus:ring-2 focus:ring-primary/20 transition-all text-background placeholder-muted-foreground"
             placeholder="name@example.com"
             required
             disabled={isLoading}
@@ -58,7 +57,6 @@ const RegisterForm = ({
             <Lock className="h-4 w-4 text-secondary" /> Password
           </label>
           <div className="relative">
-            {/* Changed bg-background to bg-primary-foreground */}
             <input
               type={showPassword ? "text" : "password"}
               name="password"
@@ -66,7 +64,7 @@ const RegisterForm = ({
               onChange={onInputChange}
               onFocus={() => setIsPasswordFocused(true)}
               onBlur={() => setIsPasswordFocused(false)}
-              className="w-full rounded-md border border-input bg-primary-foreground px-4 py-3 pr-12 outline-none focus:ring-2 focus:ring-primary/20 transition-all text-foreground placeholder-muted-foreground"
+              className="w-full rounded-md border border-input bg-primary-foreground px-4 py-3 pr-12 outline-none focus:ring-2 focus:ring-primary/20 transition-all text-background placeholder-muted-foreground"
               placeholder="••••••••"
               required
               disabled={isLoading}
@@ -89,11 +87,11 @@ const RegisterForm = ({
       <button
         type="submit"
         disabled={!isPasswordValid || isLoading}
-        className={`w-full font-bold py-4 px-6 rounded-lg flex items-center justify-center gap-3 text-lg mt-10 transition-all cursor-pointer
+        className={`w-full font-bold py-4 px-6 rounded-lg flex items-center justify-center gap-3 text-lg mt-10 transition-all 
           ${
             isPasswordValid && !isLoading
-              ? "bg-primary hover:bg-primary/90 text-white shadow-xl active:scale-[0.98]"
-              : "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
+              ? "bg-primary hover:bg-primary/90 text-white shadow-xl active:scale-[0.98] cursor-pointer"
+              : "bg-muted-foreground/70 text-foreground cursor-not-allowed opacity-50"
           }`}
       >
         {isLoading ? "Creating Account..." : "Sign Up"}

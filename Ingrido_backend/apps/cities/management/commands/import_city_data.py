@@ -1,10 +1,8 @@
-# apps/cities/management/commands/import_city_data.py
 import json
 import os
 from django.core.management.base import BaseCommand
 from apps.recipes.models import Recipe
-from apps.recipes.models import City  # ← IMPORT City from recipes app
-# from apps.cities.models import City  # ← REMOVE this
+from apps.recipes.models import City 
 
 class Command(BaseCommand):
     help = 'Import cities and recipes from JSON file'

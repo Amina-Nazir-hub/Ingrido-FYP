@@ -1,6 +1,4 @@
-// meal-planner/components/ErrorState.jsx
 import { AlertCircle } from "lucide-react";
-
 const ErrorState = ({ error, onDismiss }) => {
   if (!error) return null;
 

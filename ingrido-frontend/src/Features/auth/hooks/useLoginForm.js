@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { 
+  showErrorAlert, 
+  showWelcomeBackAlert, 
+  showLoadingAlert,
+  closeAlert 
+} from "../../shared/utils/alertUtils";
 import { useAuth } from "../../../context/AuthContext";
 import { API_ENDPOINTS, STORAGE_KEYS, ROUTES, FORM_VALIDATION } from "../constants";
 
@@ -15,19 +21,19 @@ export const useLoginForm = () => {
 
   const validateForm = () => {
     if (!email.trim()) {
-      setError("Email is required");
+      showErrorAlert("Email is required");
       return false;
     }
     if (!FORM_VALIDATION.EMAIL_PATTERN.test(email)) {
-      setError("Please enter a valid email address");
+      showErrorAlert("Please enter a valid email address");
       return false;
     }
     if (!password) {
-      setError("Password is required");
+      showErrorAlert("Password is required");
       return false;
     }
     if (password.length < FORM_VALIDATION.PASSWORD_MIN_LENGTH) {
-      setError(`Password must be at least ${FORM_VALIDATION.PASSWORD_MIN_LENGTH} characters`);
+      showErrorAlert(`Password must be at least ${FORM_VALIDATION.PASSWORD_MIN_LENGTH} characters`);
       return false;
     }
     return true;
@@ -41,6 +47,9 @@ export const useLoginForm = () => {
     }
 
     setIsLoading(true);
+    
+    // Show loading alert
+    showLoadingAlert("Signing In...", "Please wait while we authenticate you");
     
     try {
       const response = await axios.post(API_ENDPOINTS.LOGIN, {
@@ -62,6 +71,10 @@ export const useLoginForm = () => {
       // Dispatch event for other components
       window.dispatchEvent(new Event("storage_updated"));
       
+      // Close loading and show success
+      closeAlert();
+      await showWelcomeBackAlert(userName);
+      
       // Navigate to dashboard
       navigate(ROUTES.DASHBOARD);
       
@@ -69,12 +82,16 @@ export const useLoginForm = () => {
     } catch (error) {
       console.error("Login Error:", error.response?.data || error.message);
       
+      // Close loading if open
+      closeAlert();
+      
       if (error.response?.status === 401) {
-        setError("Invalid email or password. Please try again.");
+        showErrorAlert("Invalid email or password. Please try again.");
       } else if (error.response?.status === 400) {
-        setError(error.response.data?.error || "Please check your credentials");
+        const errorMsg = error.response.data?.error || "Please check your credentials";
+        showErrorAlert(errorMsg);
       } else {
-        setError("Network error. Please check your connection.");
+        showErrorAlert("Network error. Please check your connection.");
       }
       
       return false;

@@ -50,7 +50,7 @@ const HeroButtons = () => (
     </a>
 
     <a href="/demo">
-      <button className="inline-flex items-center justify-center border-2 border-background/30 bg-transparent text-background hover:bg-background hover:text-foreground font-semibold transition-all duration-300 h-14 rounded-xl px-10 text-lg cursor-pointer">
+      <button className="inline-flex items-center justify-center  bg-background text-foreground hover:bg-background/30 hover:text-foreground hover:underline font-semibold transition-all duration-300 h-14 rounded-xl px-10 text-lg cursor-pointer">
         Watch Demo
       </button>
     </a>

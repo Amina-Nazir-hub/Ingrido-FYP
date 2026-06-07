@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
 import { mealPlannerService } from "../services/mealPlannerService";
 import { STORAGE_KEYS } from "../constants";
+import { 
+  showErrorAlert, 
+  showLoadingAlert, 
+  showSuccessAlert,
+  showWarningAlert,
+  closeAlert 
+} from "../../shared/utils/alertUtils";
 
 export const useMealPlan = () => {
   const [weeklyPlan, setWeeklyPlan] = useState([]);
@@ -86,68 +93,112 @@ export const useMealPlan = () => {
     }
   };
 
-  // In useMealPlan.js, update the generateMealPlan function:
-
-const generateMealPlan = async (healthCondition, dietaryPref) => {
-  const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
-  if (!token) {
-    setError("Please login to generate meal plans");
-    return false;
-  }
-
-  if (!healthCondition || !dietaryPref) {
-    setError("Please select both health condition and dietary preference");
-    return false;
-  }
-
-  try {
-    setGenerating(true);
-    setError(null);
-    
-    console.log("Generating plan with:", { healthCondition, dietaryPref });
-    
-    const data = await mealPlannerService.generatePlan(healthCondition, dietaryPref);
-    
-    console.log("Generated plan response:", data);
-    
-    // Check if weekly_plan exists and has data
-    if (data.weekly_plan && data.weekly_plan.length > 0) {
-      console.log("Weekly plan days:", data.weekly_plan.length);
-      console.log("First day data:", data.weekly_plan[0]);
-      
-      setWeeklyPlan(data.weekly_plan);
-      setCurrentPlanId(data.plan_id);
-      setPlanCreatedAt(new Date().toISOString());
-      setIsExpired(false);
-      setDaysRemaining(7);
-      
-      localStorage.setItem(STORAGE_KEYS.CURRENT_MEAL_PLAN, JSON.stringify({
-        weekly_plan: data.weekly_plan,
-        plan_id: data.plan_id,
-        created_at: new Date().toISOString(),
-        health_condition: healthCondition,
-        dietary_pref: dietaryPref
-      }));
-      
-      return true;
-    } else {
-      console.error("No weekly_plan in response:", data);
-      setError("Generated plan has no data. Please try again.");
+  const generateMealPlan = async (healthCondition, dietaryPref) => {
+    const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
+    if (!token) {
+      showErrorAlert("Please login to generate meal plans");
+      setError("Please login to generate meal plans");
       return false;
     }
-  } catch (error) {
-    console.error("Generate error:", error);
-    setError(error.response?.data?.error || "Failed to generate plan. Please try again.");
-    return false;
-  } finally {
-    setGenerating(false);
-  }
-};
+
+    if (!healthCondition || !dietaryPref) {
+      showErrorAlert("Please select both health condition and dietary preference");
+      setError("Please select both health condition and dietary preference");
+      return false;
+    }
+
+    try {
+      setGenerating(true);
+      setError(null);
+      
+      // Show loading alert
+      showLoadingAlert("Generating Plan", "Creating your personalized 7-day meal plan...");
+      
+      console.log("Generating plan with:", { healthCondition, dietaryPref });
+      
+      const data = await mealPlannerService.generatePlan(healthCondition, dietaryPref);
+      
+      // Close loading alert
+      closeAlert();
+      
+      console.log("Generated plan response:", data);
+      
+      // Check if weekly_plan exists and has data
+      if (data.weekly_plan && data.weekly_plan.length > 0) {
+        console.log("Weekly plan days:", data.weekly_plan.length);
+        console.log("First day data:", data.weekly_plan[0]);
+        
+        setWeeklyPlan(data.weekly_plan);
+        setCurrentPlanId(data.plan_id);
+        setPlanCreatedAt(new Date().toISOString());
+        setIsExpired(false);
+        setDaysRemaining(7);
+        
+        localStorage.setItem(STORAGE_KEYS.CURRENT_MEAL_PLAN, JSON.stringify({
+          weekly_plan: data.weekly_plan,
+          plan_id: data.plan_id,
+          created_at: new Date().toISOString(),
+          health_condition: healthCondition,
+          dietary_pref: dietaryPref
+        }));
+        
+        // Show success message
+        showSuccessAlert("Your personalized 7-day meal plan has been created successfully!");
+        
+        return true;
+      } else {
+        console.error("No weekly_plan in response:", data);
+        showErrorAlert("Generated plan has no data. Please try again.");
+        setError("Generated plan has no data. Please try again.");
+        return false;
+      }
+    } catch (error) {
+      console.error("Generate error:", error);
+      closeAlert();
+      
+      // Handle different error types dynamically
+      let errorMessage = "Failed to generate plan. Please try again.";
+      
+      if (error.response?.status === 401) {
+        errorMessage = "Session expired. Please login again.";
+      } else if (error.response?.status === 429) {
+        errorMessage = "Too many requests. Please wait a moment and try again.";
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      showErrorAlert(errorMessage);
+      setError(errorMessage);
+      return false;
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const regeneratePlan = async () => {
     if (selectedHealthCondition && selectedDietaryPref) {
-      return await generateMealPlan(selectedHealthCondition, selectedDietaryPref);
+      // Show confirmation before regenerating
+      const confirmed = await showWarningAlert(
+        "Regenerate Meal Plan?",
+        "This will create a new meal plan based on your current preferences. Your existing plan will be replaced.",
+        {
+          confirmButtonText: "Yes, Regenerate",
+          cancelButtonText: "Cancel",
+          showCancelButton: true,
+          confirmButtonColor: "#6D001A"
+        }
+      );
+      
+      if (confirmed) {
+        return await generateMealPlan(selectedHealthCondition, selectedDietaryPref);
+      }
+      return false;
     } else {
+      showErrorAlert("Please select both health condition and dietary preference to regenerate");
       setError("Please select both health condition and dietary preference to regenerate");
       return false;
     }
@@ -160,10 +211,20 @@ const generateMealPlan = async (healthCondition, dietaryPref) => {
     try {
       await mealPlannerService.deletePlan(planId);
       clearPlan();
+      showSuccessAlert("Meal plan deleted successfully!");
       return true;
     } catch (error) {
       console.error("Delete error:", error);
-      setError("Failed to delete plan");
+      let errorMessage = "Failed to delete plan";
+      
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      showErrorAlert(errorMessage);
+      setError(errorMessage);
       return false;
     }
   };
@@ -178,17 +239,17 @@ const generateMealPlan = async (healthCondition, dietaryPref) => {
     localStorage.removeItem(STORAGE_KEYS.CURRENT_MEAL_PLAN);
   };
 
-  const selectHealthCondition = (healthId) => {
+  const selectHealthCondition = async (healthId) => {
     setSelectedHealthCondition(healthId);
     if (selectedDietaryPref) {
-      generateMealPlan(healthId, selectedDietaryPref);
+      await generateMealPlan(healthId, selectedDietaryPref);
     }
   };
 
-  const selectDietaryPref = (prefId) => {
+  const selectDietaryPref = async (prefId) => {
     setSelectedDietaryPref(prefId);
     if (selectedHealthCondition) {
-      generateMealPlan(selectedHealthCondition, prefId);
+      await generateMealPlan(selectedHealthCondition, prefId);
     }
   };
 
