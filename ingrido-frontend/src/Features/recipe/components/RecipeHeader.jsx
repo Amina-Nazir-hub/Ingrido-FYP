@@ -5,16 +5,12 @@ import { useBookmark } from "../../../context/BookmarkContext";
 const RecipeHeader = ({ title, id, isAiGenerated, onBack }) => {
   const { isBookmarked, toggleBookmark } = useBookmark();
   const [isLoading, setIsLoading] = useState(false);
-
-<<<<<<< HEAD
   // ✅ Debug log to see what's coming in
   console.log("RecipeHeader received:", { title, id, isAiGenerated });
 
   // ✅ Make sure we have valid id
-=======
   console.log("RecipeHeader received:", { title, id, isAiGenerated });
 
->>>>>>> origin/main
   const validId = id || (isAiGenerated ? title : null);
 
   if (!validId && !isAiGenerated) {

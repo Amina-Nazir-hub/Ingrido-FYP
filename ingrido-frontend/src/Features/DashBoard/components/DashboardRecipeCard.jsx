@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Flame, Clock, Bookmark, Eye, Drumstick } from "lucide-react";
 import { BACKEND_BASE, DEFAULT_IMAGES } from "../constants";
@@ -20,27 +20,45 @@ const DashboardRecipeCard = ({
   const navigate = useNavigate();
   const { toggleBookmark, isBookmarked } = useBookmark();
 
-  const [isSaved, setIsSaved] = useState(is_saved);
-
   const displayTitle = title || meal || "Tasty Recipe";
   const isAI = forceAI !== undefined ? forceAI : is_ai_generated;
   const bookmarkIdentifier = isAI ? displayTitle : id;
 
+  // Track if this is a user action
+  const isUserAction = useRef(false);
+  // Track component mounted state
+  const isMounted = useRef(true);
+
+  // Local state for bookmark
+  const [isSaved, setIsSaved] = useState(is_saved);
+
+  // Sync with parent only when not a user action
   useEffect(() => {
-    setIsSaved(is_saved);
+    if (!isUserAction.current) {
+      setIsSaved(is_saved);
+    }
   }, [is_saved]);
 
+  // Sync with context only when not a user action
   useEffect(() => {
-    const contextBookmarked = isBookmarked(
-      bookmarkIdentifier,
-      displayTitle,
-      isAI,
-    );
-
-    if (contextBookmarked !== isSaved) {
-      setIsSaved(contextBookmarked);
+    if (!isUserAction.current && isMounted.current) {
+      const contextBookmarked = isBookmarked(
+        bookmarkIdentifier,
+        displayTitle,
+        isAI,
+      );
+      if (contextBookmarked !== isSaved) {
+        setIsSaved(contextBookmarked);
+      }
     }
-  }, [bookmarkIdentifier, displayTitle, isAI, isBookmarked, isSaved]);
+  }, [bookmarkIdentifier, displayTitle, isAI, isBookmarked, is_saved]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const imageUrl = image
     ? image.startsWith("http")
@@ -62,6 +80,7 @@ const DashboardRecipeCard = ({
 
   const handleBookmark = async (e) => {
     e.stopPropagation();
+    e.preventDefault();
 
     const token = localStorage.getItem("ingrido_token");
     if (!token) {
@@ -69,12 +88,18 @@ const DashboardRecipeCard = ({
       return;
     }
 
-    const newSavedState = !isSaved;
-    setIsSaved(newSavedState);
+    // Mark as user action to prevent auto-sync
+    isUserAction.current = true;
+
+    const previousState = isSaved;
+    const newState = !previousState;
+
+    // Update UI immediately
+    setIsSaved(newState);
 
     try {
       if (onBookmarkToggle) {
-        await onBookmarkToggle(id, displayTitle, isAI, newSavedState);
+        await onBookmarkToggle(id, displayTitle, isAI, previousState);
       } else {
         await toggleBookmark(bookmarkIdentifier, displayTitle, isAI, {
           title: displayTitle,
@@ -83,9 +108,20 @@ const DashboardRecipeCard = ({
           prep_time,
         });
       }
+      // Success - keep the new state
+      // Reset user action flag after a short delay
+      setTimeout(() => {
+        if (isMounted.current) {
+          isUserAction.current = false;
+        }
+      }, 500);
     } catch (err) {
       console.error("Bookmark error:", err);
-      setIsSaved(!newSavedState);
+      // Revert on error
+      if (isMounted.current) {
+        setIsSaved(previousState);
+        isUserAction.current = false;
+      }
     }
   };
 
@@ -98,7 +134,7 @@ const DashboardRecipeCard = ({
           loading="lazy"
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           onError={(e) => {
-            e.target.src = DEFAULT_IMAGES.PLACEHOLDER;
+            e.currentTarget.src = DEFAULT_IMAGES.PLACEHOLDER;
           }}
         />
       </div>
@@ -108,7 +144,7 @@ const DashboardRecipeCard = ({
           {displayTitle}
         </h3>
 
-        {/* Nutritional Stats Grid - Cleaned & Structured */}
+        {/* Nutritional Stats Grid */}
         <div className="grid grid-cols-3 gap-2 text-xs">
           <div className="flex flex-col items-center bg-secondary p-2 rounded-md">
             <Flame className="h-4 w-4 text-orange-500 mb-1" />
