@@ -61,7 +61,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'ingrido_db',
+        'NAME': 'Ingrido_dbb',
         'USER': 'postgres',
         'PASSWORD': 'anb'
     }
