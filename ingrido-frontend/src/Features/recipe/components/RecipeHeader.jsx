@@ -8,6 +8,7 @@ const RecipeHeader = ({ title, id, isAiGenerated, onBack }) => {
 
   // ✅ Debug log to see what's coming in
   console.log("RecipeHeader received:", { title, id, isAiGenerated });
+
   const validId = id || (isAiGenerated ? title : null);
 
   if (!validId && !isAiGenerated) {

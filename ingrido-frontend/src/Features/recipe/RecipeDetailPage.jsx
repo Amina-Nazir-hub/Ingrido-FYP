@@ -1,4 +1,3 @@
-// Features/recipe/RecipeDetailPage.jsx
 import React from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import RecipeHeader from "./components/RecipeHeader";
@@ -74,9 +73,8 @@ export function RecipeDetailPage() {
   let isAIRecipe = isAiGenerated;
   if (isAiGenerated || (id && id.toString().startsWith("ai-")) || titleParam) {
     isAIRecipe = true;
-    recipeId = displayTitle; 
+    recipeId = displayTitle;
   } else {
-  
     recipeId = recipe.id || id;
   }
 
@@ -92,7 +90,9 @@ export function RecipeDetailPage() {
     <>
       <RecipeHeader
         title={displayTitle}
+
         id={recipeId} 
+
         isAiGenerated={isAIRecipe}
         onBack={() => navigate(-1)}
       />

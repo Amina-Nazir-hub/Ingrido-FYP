@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-
 import SavedHeader from "./components/SavedHeader";
 import SavedStats from "./components/SavedStats";
 import SavedRecipeCard from "./components/SavedRecipeCard";
@@ -9,7 +8,6 @@ import LoadingState from "./components/LoadingState";
 import EmptySavedState from "./components/EmptySavedState";
 import { useBookmark } from "../../context/BookmarkContext";
 
-// API config
 const BACKEND_BASE = "http://127.0.0.1:8000";
 const SAVED_RECIPES_URL = `${BACKEND_BASE}/api/account/saved/`;
 

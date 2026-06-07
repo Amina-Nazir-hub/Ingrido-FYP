@@ -24,7 +24,7 @@ INSTALLED_APPS = [
     'apps.dashboard',
     'apps.meal_planner',
     'apps.common',
-    'apps.cities',  # ← Add this line
+    'apps.cities',
 ]
 
 MIDDLEWARE = [

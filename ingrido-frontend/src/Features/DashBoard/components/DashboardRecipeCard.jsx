@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Flame, Clock, Bookmark, Eye, Drumstick } from "lucide-react";
 import { BACKEND_BASE, DEFAULT_IMAGES } from "../constants";
@@ -14,33 +14,42 @@ const DashboardRecipeCard = ({
   protein,
   is_saved = false,
   is_ai_generated = false,
-  onBookmarkToggle,
   forceAI,
 }) => {
   const navigate = useNavigate();
-  const { toggleBookmark, isBookmarked } = useBookmark();
-
-  const [isSaved, setIsSaved] = useState(is_saved);
+  const { toggleBookmark, isBookmarked, bookmarkedRecipes } = useBookmark();
+  const isUserAction = useRef(false);
+  const isMounted = useRef(true);
 
   const displayTitle = title || meal || "Tasty Recipe";
   const isAI = forceAI !== undefined ? forceAI : is_ai_generated;
   const bookmarkIdentifier = isAI ? displayTitle : id;
 
-  useEffect(() => {
-    setIsSaved(is_saved);
-  }, [is_saved]);
+  // Get initial bookmark state from context
+  const [isSaved, setIsSaved] = useState(() => {
+    return isBookmarked(bookmarkIdentifier, displayTitle, isAI);
+  });
 
+  // Sync with context when bookmarkedRecipes changes (but NOT during user action)
   useEffect(() => {
-    const contextBookmarked = isBookmarked(
-      bookmarkIdentifier,
-      displayTitle,
-      isAI,
-    );
-
-    if (contextBookmarked !== isSaved) {
-      setIsSaved(contextBookmarked);
+    if (!isUserAction.current && isMounted.current) {
+      const contextBookmarked = isBookmarked(
+        bookmarkIdentifier,
+        displayTitle,
+        isAI,
+      );
+      if (contextBookmarked !== isSaved) {
+        setIsSaved(contextBookmarked);
+      }
     }
-  }, [bookmarkIdentifier, displayTitle, isAI, isBookmarked, isSaved]);
+  }, [bookmarkedRecipes, bookmarkIdentifier, displayTitle, isAI, isBookmarked]);
+
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   const imageUrl = image
     ? image.startsWith("http")
@@ -62,6 +71,7 @@ const DashboardRecipeCard = ({
 
   const handleBookmark = async (e) => {
     e.stopPropagation();
+    e.preventDefault();
 
     const token = localStorage.getItem("ingrido_token");
     if (!token) {
@@ -69,23 +79,37 @@ const DashboardRecipeCard = ({
       return;
     }
 
-    const newSavedState = !isSaved;
-    setIsSaved(newSavedState);
+    // Mark as user action to prevent auto-sync
+    isUserAction.current = true;
+
+    const previousState = isSaved;
+    const newState = !previousState;
+
+    // FORAN UI UPDATE - instantly change
+    setIsSaved(newState);
 
     try {
-      if (onBookmarkToggle) {
-        await onBookmarkToggle(id, displayTitle, isAI, newSavedState);
-      } else {
-        await toggleBookmark(bookmarkIdentifier, displayTitle, isAI, {
-          title: displayTitle,
-          image,
-          kcal,
-          prep_time,
-        });
-      }
+      await toggleBookmark(bookmarkIdentifier, displayTitle, isAI, {
+        title: displayTitle,
+        image,
+        kcal,
+        prep_time,
+        protein,
+      });
+
+      // Reset user action flag after success
+      setTimeout(() => {
+        if (isMounted.current) {
+          isUserAction.current = false;
+        }
+      }, 300);
     } catch (err) {
       console.error("Bookmark error:", err);
-      setIsSaved(!newSavedState);
+      // Revert on error
+      if (isMounted.current) {
+        setIsSaved(previousState);
+        isUserAction.current = false;
+      }
     }
   };
 
@@ -108,7 +132,6 @@ const DashboardRecipeCard = ({
           {displayTitle}
         </h3>
 
-        {/* Nutritional Stats Grid - Cleaned & Structured */}
         <div className="grid grid-cols-3 gap-2 text-xs">
           <div className="flex flex-col items-center bg-primary p-2 rounded-md">
             <Flame className="h-4 w-4 text-orange-500 mb-1" />
@@ -135,7 +158,6 @@ const DashboardRecipeCard = ({
           </div>
         </div>
 
-        {/* Action Buttons Footer Area */}
         <div className="flex justify-end gap-1 border-t border-border pt-3">
           <button
             onClick={handleBookmark}

@@ -1,6 +1,8 @@
+// 
+
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import WelcomeHero from "./components/WelcomeHero";
 import RecipeGrid from "./components/RecipeGrid";
 import { useDashboardData } from "./hooks/useDashboardData";
@@ -8,12 +10,15 @@ import { useBookmark } from "../../context/BookmarkContext";
 
 export function DashboardPage() {
   const { user } = useAuth();
-  const { viewHistory, recommendedCards, loading, clearHistory } = useDashboardData();
-  const { isBookmarked, toggleBookmark, refreshBookmarks } = useBookmark();
+  const { viewHistory, recommendedCards, loading, clearHistory, refreshData } = useDashboardData();
+  const { isBookmarked, toggleBookmark } = useBookmark();
   const [localRecommended, setLocalRecommended] = useState([]);
   const [localHistory, setLocalHistory] = useState([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const currentName = user?.first_name || user?.username || localStorage.getItem("user_name") || "Chef";
+
+  // Update local state when recommendedCards changes
   useEffect(() => {
     if (recommendedCards.length > 0) {
       const updatedRecommended = recommendedCards.map(recipe => ({
@@ -28,6 +33,7 @@ export function DashboardPage() {
     }
   }, [recommendedCards, isBookmarked]);
 
+  // Update local state when viewHistory changes
   useEffect(() => {
     if (viewHistory.length > 0) {
       const updatedHistory = viewHistory.map(recipe => ({
@@ -41,12 +47,14 @@ export function DashboardPage() {
       setLocalHistory(updatedHistory);
     }
   }, [viewHistory, isBookmarked]);
+
   const handleBookmarkToggle = async (recipeId, recipeTitle, isAI, currentIsSaved) => {
     const token = localStorage.getItem("ingrido_token");
     if (!token) {
       window.location.href = "/login";
       return;
     }
+    
     let identifier;
     let isAIRecipe = isAI;
     
@@ -61,8 +69,6 @@ export function DashboardPage() {
       identifier = recipeId;
     }
     
-    console.log("handleBookmarkToggle:", { recipeId, recipeTitle, isAI, identifier });
-    
     try {
       const newStatus = await toggleBookmark(
         identifier,
@@ -74,14 +80,14 @@ export function DashboardPage() {
       if (newStatus !== false) {
         setLocalRecommended(prev =>
           prev.map(recipe =>
-            recipe.id === recipeId || recipe.title === recipeTitle 
+            (recipe.id === recipeId || recipe.title === recipeTitle) 
               ? { ...recipe, is_saved: newStatus } 
               : recipe
           )
         );
         setLocalHistory(prev =>
           prev.map(recipe =>
-            recipe.id === recipeId || recipe.title === recipeTitle
+            (recipe.id === recipeId || recipe.title === recipeTitle)
               ? { ...recipe, is_saved: newStatus }
               : recipe
           )
@@ -100,7 +106,13 @@ export function DashboardPage() {
     setLocalHistory([]);
   };
 
-  if (loading) {
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refreshData();
+    setIsRefreshing(false);
+  };
+
+  if (loading && localRecommended.length === 0 && localHistory.length === 0) {
     return (
       <div className="min-h-screen pb-20 bg-background">
         <div className="container mx-auto px-4 py-8">
@@ -119,13 +131,33 @@ export function DashboardPage() {
         <WelcomeHero name={currentName} />
         
         <div className="mt-6">
+          {(localRecommended.length > 0 || recommendedCards.length > 0) && (
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-foreground">
+                Recommended Recipes
+              </h2>
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="p-2 rounded-full hover:bg-secondary transition-colors cursor-pointer disabled:opacity-50"
+                title="Refresh Recommendations"
+              >
+                <RefreshCw 
+                  className={`h-5 w-5 text-muted-foreground hover:text-primary transition ${
+                    isRefreshing ? "animate-spin" : ""
+                  }`} 
+                />
+              </button>
+            </div>
+          )}
         
           {localRecommended.length > 0 && (
             <RecipeGrid 
               items={localRecommended} 
-              title="Recommended Recipes"
+              title="" 
               onBookmarkToggle={handleBookmarkToggle}
               forceAI={true}  
+              hideTitle={true}
             />
           )}
         
