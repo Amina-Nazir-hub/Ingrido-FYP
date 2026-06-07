@@ -1,14 +1,7 @@
 import { Trash2 } from "lucide-react";
 import DashboardRecipeCard from "./DashboardRecipeCard";
 
-const RecipeGrid = ({
-  items,
-  title,
-  onClear,
-  onBookmarkToggle,
-  forceAI,
-  hideTitle = false,
-}) => {
+const RecipeGrid = ({ items, title, onClear, forceAI, hideTitle = false }) => {
   if (!items || items.length === 0) return null;
 
   return (
@@ -37,8 +30,6 @@ const RecipeGrid = ({
             key={recipe.id || `dashboard-${index}`}
             {...recipe}
             forceAI={forceAI}
-            // Lag khatam karne ke liye function ko direct pass kiya hai bina extra arrow function ke
-            onBookmarkToggle={onBookmarkToggle}
           />
         ))}
       </div>

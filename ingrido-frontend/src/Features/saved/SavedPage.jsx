@@ -1,130 +1,139 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-
-import SavedHeader from "./components/SavedHeader";
-import SavedStats from "./components/SavedStats";
-import SavedRecipeCard from "./components/SavedRecipeCard";
-import LoadingState from "./components/LoadingState";
-import EmptySavedState from "./components/EmptySavedState";
 import { useBookmark } from "../../context/BookmarkContext";
+import { Bookmark, ArrowLeft, Trash2 } from "lucide-react";
+import { BACKEND_BASE, DEFAULT_IMAGES } from "../constants";
 
-// API config
-const BACKEND_BASE = "http://127.0.0.1:8000";
-const SAVED_RECIPES_URL = `${BACKEND_BASE}/api/account/saved/`;
+const SavedRecipeCard = ({ recipe, onRemove }) => {
+  const navigate = useNavigate();
 
-const getAuthConfig = () => {
-  const token = localStorage.getItem("ingrido_token");
-  return {
-    headers: {
-      Authorization: `Token ${token}`,
-      "Content-Type": "application/json",
-    },
-  };
+  const imageUrl = recipe.image
+    ? recipe.image.startsWith("http")
+      ? recipe.image
+      : `${BACKEND_BASE}${recipe.image}`
+    : DEFAULT_IMAGES.PLACEHOLDER;
+
+  return (
+    <article className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+      <div className="aspect-video w-full overflow-hidden bg-muted relative">
+        <img
+          src={imageUrl}
+          alt={recipe.title}
+          loading="lazy"
+          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          onError={(e) => {
+            e.target.src = DEFAULT_IMAGES.PLACEHOLDER;
+          }}
+        />
+      </div>
+      <div className="p-5">
+        <h3 className="text-lg font-bold text-foreground line-clamp-1 mb-2">
+          {recipe.title}
+        </h3>
+        <div className="flex justify-between items-center">
+          <button
+            onClick={() => {
+              if (recipe.is_ai_generated) {
+                navigate(`/recipe/ai/${encodeURIComponent(recipe.title)}`);
+              } else {
+                navigate(`/recipe/${recipe.id}`);
+              }
+            }}
+            className="text-primary hover:underline text-sm"
+          >
+            View Recipe
+          </button>
+          <button
+            onClick={() => onRemove(recipe)}
+            className="p-2 text-red-500 hover:bg-red-50 rounded-full transition"
+            title="Remove from saved"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      </div>
+    </article>
+  );
 };
 
-const SavedPage = () => {
+export function SavedPage() {
   const navigate = useNavigate();
-  const { toggleBookmark } = useBookmark();
-
+  const { bookmarkedRecipes, toggleBookmark, loading } = useBookmark();
   const [savedRecipes, setSavedRecipes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [removingIds, setRemovingIds] = useState(new Set());
-
-  const fetchSavedRecipes = useCallback(async () => {
-    const token = localStorage.getItem("ingrido_token");
-
-    if (!token) {
-      setSavedRecipes([]);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const response = await axios.get(SAVED_RECIPES_URL, getAuthConfig());
-
-      const data = Array.isArray(response.data)
-        ? response.data
-        : response.data.results || response.data.bookmarks || [];
-
-      setSavedRecipes(data);
-    } catch (error) {
-      console.error("Error fetching saved recipes:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   useEffect(() => {
-    fetchSavedRecipes();
-  }, [fetchSavedRecipes]);
+    setSavedRecipes(bookmarkedRecipes);
+  }, [bookmarkedRecipes]);
 
-  const handleUnsave = useCallback(
-    async (identifier, isAiGenerated) => {
-      // instant UI update
-      setSavedRecipes((prev) =>
-        prev.filter((recipe) => {
-          const recipeId = recipe.recipe_id || recipe.id;
-          const recipeTitle = recipe.title || recipe.recipe_details?.title;
+  const handleRemove = async (recipe) => {
+    const isAI = recipe.is_ai_generated || false;
+    const identifier = isAI ? recipe.title : recipe.id;
 
-          if (isAiGenerated) {
-            return recipeTitle !== identifier;
-          } else {
-            return recipeId !== identifier;
-          }
-        })
-      );
-
-      setRemovingIds((prev) => new Set([...prev, identifier]));
-
-      try {
-        await toggleBookmark(identifier, identifier, isAiGenerated);
-        await fetchSavedRecipes();
-      } catch (error) {
-        console.error("Unsave error:", error);
-        await fetchSavedRecipes();
-      } finally {
-        setRemovingIds((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(identifier);
-          return newSet;
-        });
-      }
-    },
-    [toggleBookmark, fetchSavedRecipes]
-  );
+    await toggleBookmark(identifier, recipe.title, isAI, recipe);
+  };
 
   if (loading) {
-    return <LoadingState />;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <SavedHeader />
+    <div className="min-h-screen bg-background">
+      <div className="mx-auto max-w-7xl px-6 py-10">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-2 rounded-full hover:bg-secondary transition"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+              <Bookmark className="h-7 w-7 text-amber-600" />
+              Saved Recipes
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              {savedRecipes.length} recipe{savedRecipes.length !== 1 ? "s" : ""}{" "}
+              saved
+            </p>
+          </div>
+        </div>
 
-      <main className="mx-auto max-w-7xl px-6 py-10 font-sans">
-        <SavedStats count={savedRecipes.length} />
-
+        {/* Saved Recipes Grid */}
         {savedRecipes.length > 0 ? (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3 lg:gap-8">
-            {savedRecipes.map((recipe) => (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {savedRecipes.map((recipe, index) => (
               <SavedRecipeCard
-                key={recipe.id || recipe.bookmark_id || recipe.recipe_id || recipe.title}
+                key={recipe.id || `saved-${index}`}
                 recipe={recipe}
-                onUnsave={handleUnsave}
-                isRemoving={removingIds.has(
-                  recipe.recipe_id || recipe.id || recipe.title
-                )}
+                onRemove={handleRemove}
               />
             ))}
           </div>
         ) : (
-          <EmptySavedState />
+          <div className="text-center py-20">
+            <Bookmark className="mx-auto h-16 w-16 text-muted-foreground/30 mb-4" />
+            <h2 className="text-xl font-semibold text-foreground mb-2">
+              No saved recipes yet
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              Start saving your favorite recipes by clicking the bookmark icon!
+            </p>
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition"
+            >
+              Explore Recipes
+            </button>
+          </div>
         )}
-      </main>
+      </div>
     </div>
   );
-};
+}
 
 export default SavedPage;

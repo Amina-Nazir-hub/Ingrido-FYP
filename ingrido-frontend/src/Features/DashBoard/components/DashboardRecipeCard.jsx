@@ -14,32 +14,23 @@ const DashboardRecipeCard = ({
   protein,
   is_saved = false,
   is_ai_generated = false,
-  onBookmarkToggle,
   forceAI,
 }) => {
   const navigate = useNavigate();
-  const { toggleBookmark, isBookmarked } = useBookmark();
+  const { toggleBookmark, isBookmarked, bookmarkedRecipes } = useBookmark();
+  const isUserAction = useRef(false);
+  const isMounted = useRef(true);
 
   const displayTitle = title || meal || "Tasty Recipe";
   const isAI = forceAI !== undefined ? forceAI : is_ai_generated;
   const bookmarkIdentifier = isAI ? displayTitle : id;
 
-  // Track if this is a user action
-  const isUserAction = useRef(false);
-  // Track component mounted state
-  const isMounted = useRef(true);
+  // Get initial bookmark state from context
+  const [isSaved, setIsSaved] = useState(() => {
+    return isBookmarked(bookmarkIdentifier, displayTitle, isAI);
+  });
 
-  // Local state for bookmark
-  const [isSaved, setIsSaved] = useState(is_saved);
-
-  // Sync with parent only when not a user action
-  useEffect(() => {
-    if (!isUserAction.current) {
-      setIsSaved(is_saved);
-    }
-  }, [is_saved]);
-
-  // Sync with context only when not a user action
+  // Sync with context when bookmarkedRecipes changes (but NOT during user action)
   useEffect(() => {
     if (!isUserAction.current && isMounted.current) {
       const contextBookmarked = isBookmarked(
@@ -51,9 +42,9 @@ const DashboardRecipeCard = ({
         setIsSaved(contextBookmarked);
       }
     }
-  }, [bookmarkIdentifier, displayTitle, isAI, isBookmarked, is_saved]);
+  }, [bookmarkedRecipes, bookmarkIdentifier, displayTitle, isAI, isBookmarked]);
 
-  // Cleanup on unmount
+  // Cleanup
   useEffect(() => {
     return () => {
       isMounted.current = false;
@@ -94,27 +85,24 @@ const DashboardRecipeCard = ({
     const previousState = isSaved;
     const newState = !previousState;
 
-    // Update UI immediately
+    // FORAN UI UPDATE - instantly change
     setIsSaved(newState);
 
     try {
-      if (onBookmarkToggle) {
-        await onBookmarkToggle(id, displayTitle, isAI, previousState);
-      } else {
-        await toggleBookmark(bookmarkIdentifier, displayTitle, isAI, {
-          title: displayTitle,
-          image,
-          kcal,
-          prep_time,
-        });
-      }
-      // Success - keep the new state
-      // Reset user action flag after a short delay
+      await toggleBookmark(bookmarkIdentifier, displayTitle, isAI, {
+        title: displayTitle,
+        image,
+        kcal,
+        prep_time,
+        protein,
+      });
+
+      // Reset user action flag after success
       setTimeout(() => {
         if (isMounted.current) {
           isUserAction.current = false;
         }
-      }, 500);
+      }, 300);
     } catch (err) {
       console.error("Bookmark error:", err);
       // Revert on error
@@ -134,7 +122,7 @@ const DashboardRecipeCard = ({
           loading="lazy"
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           onError={(e) => {
-            e.currentTarget.src = DEFAULT_IMAGES.PLACEHOLDER;
+            e.target.src = DEFAULT_IMAGES.PLACEHOLDER;
           }}
         />
       </div>
@@ -144,7 +132,6 @@ const DashboardRecipeCard = ({
           {displayTitle}
         </h3>
 
-        {/* Nutritional Stats Grid */}
         <div className="grid grid-cols-3 gap-2 text-xs">
           <div className="flex flex-col items-center bg-secondary p-2 rounded-md">
             <Flame className="h-4 w-4 text-orange-500 mb-1" />
@@ -171,7 +158,6 @@ const DashboardRecipeCard = ({
           </div>
         </div>
 
-        {/* Action Buttons Footer Area */}
         <div className="flex justify-end gap-1 border-t border-border pt-3">
           <button
             onClick={handleBookmark}

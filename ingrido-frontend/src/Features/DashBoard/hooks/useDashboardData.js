@@ -91,7 +91,7 @@ export const useDashboardData = () => {
     return () => {
       isMounted = false;
     };
-  }, []); // Empty dependency array - runs only once
+  }, []);
 
   const refreshData = async () => {
     setLoading(true);

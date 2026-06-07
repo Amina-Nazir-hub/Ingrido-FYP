@@ -1,167 +1,91 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import { useState, useEffect } from "react";
+import { useAuth } from "../../context/AuthContext";
+import { Loader2, RefreshCw } from "lucide-react";
+import WelcomeHero from "./components/WelcomeHero";
+import RecipeGrid from "./components/RecipeGrid";
+import { useDashboardData } from "./hooks/useDashboardData";
 
-const BACKEND_BASE = "http://127.0.0.1:8000";
+export function DashboardPage() {
+  const { user } = useAuth();
+  const { viewHistory, recommendedCards, loading, clearHistory, refreshData } =
+    useDashboardData();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-const BookmarkContext = createContext();
+  const currentName =
+    user?.first_name ||
+    user?.username ||
+    localStorage.getItem("user_name") ||
+    "Chef";
 
-export function BookmarkProvider({ children }) {
-  const [bookmarkedRecipes, setBookmarkedRecipes] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const isFetching = useRef(false);
-  const fetchTimeout = useRef(null);
-
-  const fetchBookmarks = async () => {
-    if (isFetching.current) return;
-
-    const token = localStorage.getItem("ingrido_token");
-    if (!token) {
-      setBookmarkedRecipes([]);
-      return;
-    }
-
-    isFetching.current = true;
-
-    try {
-      setLoading(true);
-      const response = await axios.get(`${BACKEND_BASE}/api/account/saved/`, {
-        headers: { Authorization: `Token ${token}` }
-      });
-      setBookmarkedRecipes(response.data);
-    } catch (err) {
-      console.error("Fetch bookmarks error:", err);
-    } finally {
-      setLoading(false);
-      isFetching.current = false;
-    }
+  const handleClearHistory = async () => {
+    await clearHistory();
   };
 
-  const isBookmarked = (id, title, isAI = false) => {
-    if (!id && !title) return false;
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refreshData();
+    setIsRefreshing(false);
+  };
 
-    const isSeasonal = id && id.toString().includes("seasonal");
-    const effectiveIsAI = isAI || isSeasonal;
-
-    if (effectiveIsAI) {
-      return bookmarkedRecipes.some(recipe =>
-        recipe.is_ai_generated === true &&
-        (recipe.title === title || recipe.title === id || recipe.recipe_id === id)
-      );
-    }
-    return bookmarkedRecipes.some(recipe =>
-      (Number(recipe.recipe_id) === Number(id) || Number(recipe.id) === Number(id)) &&
-      !recipe.is_ai_generated
+  if (loading && recommendedCards.length === 0 && viewHistory.length === 0) {
+    return (
+      <div className="min-h-screen pb-20 bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <WelcomeHero name={currentName} />
+          <div className="flex justify-center py-20">
+            <Loader2 className="animate-spin text-primary w-12 h-12" />
+          </div>
+        </div>
+      </div>
     );
-  };
-  const toggleBookmark = async (id, title, isAI = false, recipeData = {}) => {
-    const token = localStorage.getItem("ingrido_token");
-    if (!token) {
-      alert("Please login to save recipes");
-      window.location.href = "/login";
-      return false;
-    }
-    if ((!id || id === 'undefined') && !title) {
-      console.error("No valid id or title provided", { id, title });
-      return false;
-    }
-
-    let actualIsAI = isAI;
-    let actualId = id;
-    let actualTitle = title;
-    const isSeasonalOrAI = (id && typeof id === 'string' && 
-      (id.includes("seasonal") || id.startsWith("ai-"))) || isAI;
-    
-    if (isSeasonalOrAI) {
-      const recipeTitle = title || recipeData?.title;
-      if (!recipeTitle) {
-        console.error("No title for AI/Seasonal recipe", { id, title });
-        return false;
-      }
-      actualIsAI = true;
-      actualId = recipeTitle;
-      actualTitle = recipeTitle;
-      console.log("🔄 AI/Seasonal recipe detected! Using title:", recipeTitle);
-    }
-    if (actualId === 'undefined' || actualId === null || actualId === undefined) {
-      if (actualTitle) {
-        actualId = actualTitle;
-        actualIsAI = true;
-      } else {
-        console.error("Invalid ID after processing", { actualId, actualTitle });
-        return false;
-      }
-    }
-
-    try {
-      let endpoint;
-
-      if (actualIsAI) {
-        const recipeTitle = actualTitle || recipeData?.title || title;
-        if (!recipeTitle) {
-          console.error("No title for AI recipe");
-          return false;
-        }
-        endpoint = `${BACKEND_BASE}/api/account/recipes/ai/${encodeURIComponent(recipeTitle)}/bookmark/`;
-        console.log("✅ AI Endpoint:", endpoint);
-      } else {
-        const numericId = Number(actualId);
-        if (isNaN(numericId)) {
-          console.error("Invalid numeric ID for regular recipe", actualId);
-          return false;
-        }
-        endpoint = `${BACKEND_BASE}/api/account/recipes/${numericId}/bookmark/`;
-        console.log("✅ Regular Endpoint:", endpoint);
-      }
-
-      const response = await axios.post(endpoint, {}, {
-        headers: { Authorization: `Token ${token}` }
-      });
-
-      const isSaved = response.data.saved === true || response.data.status === "saved";
-
-      if (fetchTimeout.current) {
-        clearTimeout(fetchTimeout.current);
-      }
-      fetchTimeout.current = setTimeout(() => {
-        fetchBookmarks();
-      }, 300);
-
-      return isSaved;
-    } catch (err) {
-      console.error("Toggle bookmark error:", err);
-      if (err.response?.status === 401) {
-        localStorage.removeItem("ingrido_token");
-        window.location.href = "/login";
-      }
-      return false;
-    }
-  };
-
-  const clearBookmarks = () => {
-    setBookmarkedRecipes([]);
-  };
-
-  useEffect(() => {
-    fetchBookmarks();
-    return () => {
-      if (fetchTimeout.current) {
-        clearTimeout(fetchTimeout.current);
-      }
-    };
-  }, []);
+  }
 
   return (
-    <BookmarkContext.Provider value={{
-      bookmarkedRecipes,
-      isBookmarked,
-      toggleBookmark,
-      refreshBookmarks: fetchBookmarks,
-      clearBookmarks,
-      loading
-    }}>
-      {children}
-    </BookmarkContext.Provider>
+    <div className="min-h-screen pb-20 bg-background">
+      <div className="container mx-auto px-4 py-8">
+        <WelcomeHero name={currentName} />
+
+        <div className="mt-6">
+          {recommendedCards.length > 0 && (
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-foreground">
+                Recommended Recipes
+              </h2>
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="p-2 rounded-full hover:bg-secondary transition-colors cursor-pointer disabled:opacity-50"
+                title="Refresh Recommendations"
+              >
+                <RefreshCw
+                  className={`h-5 w-5 text-muted-foreground hover:text-primary transition ${
+                    isRefreshing ? "animate-spin" : ""
+                  }`}
+                />
+              </button>
+            </div>
+          )}
+
+          {recommendedCards.length > 0 && (
+            <RecipeGrid
+              items={recommendedCards}
+              title=""
+              forceAI={true}
+              hideTitle={true}
+            />
+          )}
+
+          {viewHistory.length > 0 && (
+            <RecipeGrid
+              items={viewHistory}
+              title="Recently Viewed Recipes"
+              onClear={handleClearHistory}
+            />
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
-export const useBookmark = () => useContext(BookmarkContext);
+export default DashboardPage;

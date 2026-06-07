@@ -9,11 +9,13 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { BACKEND_URL, DEFAULT_IMAGE } from "../constants";
+
+const BACKEND_URL = "http://127.0.0.1:8000";
+const DEFAULT_IMAGE =
+  "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800";
 
 const SavedRecipeCard = ({ recipe, onUnsave, isRemoving }) => {
   const navigate = useNavigate();
-
   const [isRemovingLocal, setIsRemovingLocal] = useState(false);
 
   const recipeId = recipe.recipe_id || recipe.id;
@@ -47,7 +49,6 @@ const SavedRecipeCard = ({ recipe, onUnsave, isRemoving }) => {
     }
   };
 
-  // Instant unsave - No page reload
   const handleUnsaveClick = async () => {
     setIsRemovingLocal(true);
 
@@ -97,28 +98,22 @@ const SavedRecipeCard = ({ recipe, onUnsave, isRemoving }) => {
         </div>
 
         <div className="grid grid-cols-3 gap-2 text-xs">
-          <div className="flex flex-col items-center rounded-md bg-primary p-2">
-            <Flame className="mb-1 h-4 w-4 text-amber-500" />
-            <span className="font-semibold text-primary-foreground">
-              {calories}
-            </span>
-            <span className="text-primary-foreground">kcal</span>
+          <div className="flex flex-col items-center rounded-md bg-secondary p-2">
+            <Flame className="mb-1 h-4 w-4 text-muted-foreground" />
+            <span className="font-semibold text-foreground">{calories}</span>
+            <span className="text-muted-foreground">kcal</span>
           </div>
 
-          <div className="flex flex-col items-center rounded-md bg-primary p-2">
-            <Clock className="mb-1 h-4 w-4 text-blue-500" />
-            <span className="font-semibold text-primary-foreground">
-              {prepTime}
-            </span>
-            <span className="text-primary-foreground">mins</span>
+          <div className="flex flex-col items-center rounded-md bg-secondary p-2">
+            <Clock className="mb-1 h-4 w-4 text-muted-foreground" />
+            <span className="font-semibold text-foreground">{prepTime}</span>
+            <span className="text-muted-foreground">mins</span>
           </div>
 
-          <div className="flex flex-col items-center rounded-md bg-primary p-2">
-            <Drumstick className="mb-1 h-4 w-4 text-green-600" />
-            <span className="font-semibold text-primary-foreground">
-              {protein}
-            </span>
-            <span className="text-primary-foreground">protein</span>
+          <div className="flex flex-col items-center rounded-md bg-secondary p-2">
+            <Drumstick className="mb-1 h-4 w-4 text-muted-foreground" />
+            <span className="font-semibold text-foreground">{protein}</span>
+            <span className="text-muted-foreground">protein</span>
           </div>
         </div>
 
@@ -126,7 +121,7 @@ const SavedRecipeCard = ({ recipe, onUnsave, isRemoving }) => {
           <button
             onClick={handleUnsaveClick}
             disabled={isRemovingLocal || isRemoving}
-            className="rounded-md p-2 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50 cursor-pointer"
+            className="rounded-md p-2 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
             title="Remove from saved"
           >
             {isRemovingLocal || isRemoving ? (
@@ -138,7 +133,7 @@ const SavedRecipeCard = ({ recipe, onUnsave, isRemoving }) => {
 
           <button
             onClick={handleViewDetail}
-            className="rounded-md p-2 text-primary hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"
+            className="rounded-md p-2 text-muted-foreground hover:bg-secondary transition-colors"
             title="View Recipe"
           >
             <Eye className="h-5 w-5" />
