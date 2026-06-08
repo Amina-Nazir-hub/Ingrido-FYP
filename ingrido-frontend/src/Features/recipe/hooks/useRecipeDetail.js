@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { recipeService } from "../services/recipeService";
 import { saveToLocalHistory } from "../utils/recipeUtils";
-import { BACKEND_URL } from "../constants";
+import { BACKEND_URL } from "../../../config/api";
 
 export const useRecipeDetail = (id, titleParam) => {
   const [recipe, setRecipe] = useState(null);

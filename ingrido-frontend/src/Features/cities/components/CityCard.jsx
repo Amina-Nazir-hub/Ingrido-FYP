@@ -1,6 +1,7 @@
 import { Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { BACKEND_URL, DEFAULT_IMAGE, ROUTES } from "../constants";
+import { DEFAULT_IMAGE, ROUTES } from "../constants";
+import { BACKEND_URL } from "../../../config/api";
 
 const CityCard = ({ city }) => {
   const navigate = useNavigate();
@@ -73,7 +74,8 @@ const CityCard = ({ city }) => {
         {/* Bottom Section */}
         <div className="mt-auto pt-6 flex items-center justify-between border-t border-border">
           <span className="text-xs text-muted-foreground italic">
-            {city.dishes_count || city.famous_dishes?.length || 0} Dishes Available
+            {city.dishes_count || city.famous_dishes?.length || 0} Dishes
+            Available
           </span>
 
           <button

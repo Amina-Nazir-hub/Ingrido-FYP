@@ -1,19 +1,19 @@
-export const BACKEND_BASE = "http://127.0.0.1:8000";
+import { BACKEND_URL } from "../../config/api";
 
 export const API_ENDPOINTS = {
   // Dashboard endpoints (Updated as per new structure)
-  SEASONAL_RECIPES: `${BACKEND_BASE}/api/dashboard/seasonal/`,
-  VIEWED_RECIPES: `${BACKEND_BASE}/api/account/viewed-recipes/`,
-  VIEWED_RECIPES_CLEAR: `${BACKEND_BASE}/api/account/viewed-recipes/clear/`,
+  SEASONAL_RECIPES: `${BACKEND_URL}/api/dashboard/seasonal/`,
+  VIEWED_RECIPES: `${BACKEND_URL}/api/account/viewed-recipes/`,
+  VIEWED_RECIPES_CLEAR: `${BACKEND_URL}/api/account/viewed-recipes/clear/`,
   
   // Bookmark endpoints
-  BOOKMARK_RECIPE: (id) => `${BACKEND_BASE}/api/account/recipes/${id}/bookmark/`,
-  BOOKMARK_AI_RECIPE: (title) => `${BACKEND_BASE}/api/account/recipes/ai/${encodeURIComponent(title)}/bookmark/`,
+  BOOKMARK_RECIPE: (id) => `${BACKEND_URL}/api/account/recipes/${id}/bookmark/`,
+  BOOKMARK_AI_RECIPE: (title) => `${BACKEND_URL}/api/account/recipes/ai/${encodeURIComponent(title)}/bookmark/`,
   
   // Search History endpoints
-  SEARCH_HISTORY: `${BACKEND_BASE}/api/account/search-history/`,
-  SEARCH_HISTORY_ADD: `${BACKEND_BASE}/api/account/search-history/add/`,
-  SEARCH_HISTORY_REMOVE: (query) => `${BACKEND_BASE}/api/account/search-history/remove/${encodeURIComponent(query)}/`,
+  SEARCH_HISTORY: `${BACKEND_URL}/api/account/search-history/`,
+  SEARCH_HISTORY_ADD: `${BACKEND_URL}/api/account/search-history/add/`,
+  SEARCH_HISTORY_REMOVE: (query) => `${BACKEND_URL}/api/account/search-history/remove/${encodeURIComponent(query)}/`,
 };
 
 export const STORAGE_KEYS = {

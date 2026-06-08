@@ -9,7 +9,8 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { BACKEND_URL, DEFAULT_IMAGE } from "../constants";
+import { DEFAULT_IMAGE } from "../constants";
+import { BACKEND_URL } from "../../../config/api";
 
 const SavedRecipeCard = ({ recipe, onUnsave, isRemoving }) => {
   const navigate = useNavigate();

@@ -1,7 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import axios from 'axios';
-
-const BACKEND_BASE = "http://127.0.0.1:8000";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+} from "react";
+import axios from "axios";
+import { BACKEND_URL } from "../config/api";
 
 const BookmarkContext = createContext();
 
@@ -24,8 +29,8 @@ export function BookmarkProvider({ children }) {
 
     try {
       setLoading(true);
-      const response = await axios.get(`${BACKEND_BASE}/api/account/saved/`, {
-        headers: { Authorization: `Token ${token}` }
+      const response = await axios.get(`${BACKEND_URL}/api/account/saved/`, {
+        headers: { Authorization: `Token ${token}` },
       });
       setBookmarkedRecipes(response.data);
     } catch (err) {
@@ -43,14 +48,19 @@ export function BookmarkProvider({ children }) {
     const effectiveIsAI = isAI || isSeasonal;
 
     if (effectiveIsAI) {
-      return bookmarkedRecipes.some(recipe =>
-        recipe.is_ai_generated === true &&
-        (recipe.title === title || recipe.title === id || recipe.recipe_id === id)
+      return bookmarkedRecipes.some(
+        (recipe) =>
+          recipe.is_ai_generated === true &&
+          (recipe.title === title ||
+            recipe.title === id ||
+            recipe.recipe_id === id),
       );
     }
-    return bookmarkedRecipes.some(recipe =>
-      (Number(recipe.recipe_id) === Number(id) || Number(recipe.id) === Number(id)) &&
-      !recipe.is_ai_generated
+    return bookmarkedRecipes.some(
+      (recipe) =>
+        (Number(recipe.recipe_id) === Number(id) ||
+          Number(recipe.id) === Number(id)) &&
+        !recipe.is_ai_generated,
     );
   };
   const toggleBookmark = async (id, title, isAI = false, recipeData = {}) => {
@@ -60,7 +70,7 @@ export function BookmarkProvider({ children }) {
       window.location.href = "/login";
       return false;
     }
-    if ((!id || id === 'undefined') && !title) {
+    if ((!id || id === "undefined") && !title) {
       console.error("No valid id or title provided", { id, title });
       return false;
     }
@@ -68,9 +78,12 @@ export function BookmarkProvider({ children }) {
     let actualIsAI = isAI;
     let actualId = id;
     let actualTitle = title;
-    const isSeasonalOrAI = (id && typeof id === 'string' && 
-      (id.includes("seasonal") || id.startsWith("ai-"))) || isAI;
-    
+    const isSeasonalOrAI =
+      (id &&
+        typeof id === "string" &&
+        (id.includes("seasonal") || id.startsWith("ai-"))) ||
+      isAI;
+
     if (isSeasonalOrAI) {
       const recipeTitle = title || recipeData?.title;
       if (!recipeTitle) {
@@ -82,7 +95,11 @@ export function BookmarkProvider({ children }) {
       actualTitle = recipeTitle;
       console.log("🔄 AI/Seasonal recipe detected! Using title:", recipeTitle);
     }
-    if (actualId === 'undefined' || actualId === null || actualId === undefined) {
+    if (
+      actualId === "undefined" ||
+      actualId === null ||
+      actualId === undefined
+    ) {
       if (actualTitle) {
         actualId = actualTitle;
         actualIsAI = true;
@@ -101,7 +118,7 @@ export function BookmarkProvider({ children }) {
           console.error("No title for AI recipe");
           return false;
         }
-        endpoint = `${BACKEND_BASE}/api/account/recipes/ai/${encodeURIComponent(recipeTitle)}/bookmark/`;
+        endpoint = `${BACKEND_URL}/api/account/recipes/ai/${encodeURIComponent(recipeTitle)}/bookmark/`;
         console.log("✅ AI Endpoint:", endpoint);
       } else {
         const numericId = Number(actualId);
@@ -109,15 +126,20 @@ export function BookmarkProvider({ children }) {
           console.error("Invalid numeric ID for regular recipe", actualId);
           return false;
         }
-        endpoint = `${BACKEND_BASE}/api/account/recipes/${numericId}/bookmark/`;
+        endpoint = `${BACKEND_URL}/api/account/recipes/${numericId}/bookmark/`;
         console.log("✅ Regular Endpoint:", endpoint);
       }
 
-      const response = await axios.post(endpoint, {}, {
-        headers: { Authorization: `Token ${token}` }
-      });
+      const response = await axios.post(
+        endpoint,
+        {},
+        {
+          headers: { Authorization: `Token ${token}` },
+        },
+      );
 
-      const isSaved = response.data.saved === true || response.data.status === "saved";
+      const isSaved =
+        response.data.saved === true || response.data.status === "saved";
 
       if (fetchTimeout.current) {
         clearTimeout(fetchTimeout.current);
@@ -151,14 +173,16 @@ export function BookmarkProvider({ children }) {
   }, []);
 
   return (
-    <BookmarkContext.Provider value={{
-      bookmarkedRecipes,
-      isBookmarked,
-      toggleBookmark,
-      refreshBookmarks: fetchBookmarks,
-      clearBookmarks,
-      loading
-    }}>
+    <BookmarkContext.Provider
+      value={{
+        bookmarkedRecipes,
+        isBookmarked,
+        toggleBookmark,
+        refreshBookmarks: fetchBookmarks,
+        clearBookmarks,
+        loading,
+      }}
+    >
       {children}
     </BookmarkContext.Provider>
   );

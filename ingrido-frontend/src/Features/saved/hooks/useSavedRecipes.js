@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { savedService } from "../services/savedService";
-import { STORAGE_KEYS, ROUTES, BACKEND_URL } from "../constants";
+import { STORAGE_KEYS, ROUTES } from "../constants";
+import { BACKEND_URL } from "../../../config/api";
 import axios from "axios";
 
 export const useSavedRecipes = () => {

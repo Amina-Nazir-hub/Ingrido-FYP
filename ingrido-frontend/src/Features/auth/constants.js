@@ -1,8 +1,8 @@
-export const BACKEND_BASE = "http://127.0.0.1:8000";
+import { BACKEND_URL } from "../../config/api";
 
 export const API_ENDPOINTS = {
-  LOGIN: `${BACKEND_BASE}/api/account/login/`,
-  REGISTER: `${BACKEND_BASE}/api/account/register/`,
+  LOGIN: `${BACKEND_URL}/api/account/login/`,
+  REGISTER: `${BACKEND_URL}/api/account/register/`,
 };
 
 export const STORAGE_KEYS = {

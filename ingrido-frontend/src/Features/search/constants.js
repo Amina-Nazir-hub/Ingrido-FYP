@@ -1,16 +1,16 @@
-export const BACKEND_BASE = "http://127.0.0.1:8000";
+import { BACKEND_URL } from "../../config/api";
 
 export const API_ENDPOINTS = {
   // AI Search endpoints
-  AI_SEARCH: `${BACKEND_BASE}/api/recipes/ai-search/`,
-  AI_SEARCH_ALT: `${BACKEND_BASE}/api/account/recipes/ai-search/`,
+  AI_SEARCH: `${BACKEND_URL}/api/recipes/ai-search/`,
+  AI_SEARCH_ALT: `${BACKEND_URL}/api/account/recipes/ai-search/`,
   
   // Search History
-  SEARCH_HISTORY_ADD: `${BACKEND_BASE}/api/account/search-history/add/`,
+  SEARCH_HISTORY_ADD: `${BACKEND_URL}/api/account/search-history/add/`,
   
   // Bookmark endpoints
-  BOOKMARK_RECIPE: (id) => `${BACKEND_BASE}/api/account/recipes/${id}/bookmark/`,
-  BOOKMARK_AI_RECIPE: (title) => `${BACKEND_BASE}/api/account/recipes/ai/${encodeURIComponent(title)}/bookmark/`,
+  BOOKMARK_RECIPE: (id) => `${BACKEND_URL}/api/account/recipes/${id}/bookmark/`,
+  BOOKMARK_AI_RECIPE: (title) => `${BACKEND_URL}/api/account/recipes/ai/${encodeURIComponent(title)}/bookmark/`,
 };
 
 export const STORAGE_KEYS = {

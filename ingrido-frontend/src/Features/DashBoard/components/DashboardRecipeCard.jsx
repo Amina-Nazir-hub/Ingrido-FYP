@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Flame, Clock, Bookmark, Eye, Drumstick } from "lucide-react";
-import { BACKEND_BASE, DEFAULT_IMAGES } from "../constants";
+import { DEFAULT_IMAGES } from "../constants";
+import { BACKEND_URL } from "../../../config/api";
 import { useBookmark } from "../../../context/BookmarkContext";
 
 const DashboardRecipeCard = ({
@@ -54,7 +55,7 @@ const DashboardRecipeCard = ({
   const imageUrl = image
     ? image.startsWith("http")
       ? image
-      : `${BACKEND_BASE}${image}`
+      : `${BACKEND_URL}${image}`
     : DEFAULT_IMAGES.PLACEHOLDER;
 
   const handleViewDetail = () => {

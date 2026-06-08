@@ -8,8 +8,8 @@ import LoadingState from "./components/LoadingState";
 import EmptySavedState from "./components/EmptySavedState";
 import { useBookmark } from "../../context/BookmarkContext";
 
-const BACKEND_BASE = "http://127.0.0.1:8000";
-const SAVED_RECIPES_URL = `${BACKEND_BASE}/api/account/saved/`;
+import { BACKEND_URL } from "../../config/api";
+const SAVED_RECIPES_URL = `${BACKEND_URL}/api/account/saved/`;
 
 const getAuthConfig = () => {
   const token = localStorage.getItem("ingrido_token");
