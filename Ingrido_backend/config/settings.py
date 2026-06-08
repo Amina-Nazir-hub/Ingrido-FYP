@@ -1,5 +1,10 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+import dj_database_url
+from urllib.parse import urlparse
+
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -58,12 +63,28 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'ingrido_db',
+#         'USER': 'postgres',
+#         'PASSWORD': 'pakpost000'
+#     }
+# }
+# DATABASES = {
+#     'default': {
+      
+#     }
+# }
+tmp = urlparse(os.getenv('DATABASE_URL'))
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'Ingrido_dbb',
-        'USER': 'postgres',
-        'PASSWORD': 'anb'
+        'NAME': tmp.path[1:],
+        'USER': tmp.username,
+        'PASSWORD': tmp.password,
+        'HOST': tmp.hostname,
+        'PORT': tmp.port,
     }
 }
 
