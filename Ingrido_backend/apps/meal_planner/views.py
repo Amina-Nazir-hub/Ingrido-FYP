@@ -1,5 +1,3 @@
-# apps/meal_planner/views.py
-
 import json
 import re
 from datetime import datetime, timedelta
@@ -9,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
+from groq import AuthenticationError, RateLimitError, APIStatusError
 
 from apps.account.models import UserProfile
 from apps.recipes.services import get_groq_client
@@ -37,13 +36,13 @@ def generate_and_save_meal_plan(request):
         groq_client = get_groq_client()
         
         if not groq_client:
-            return Response({'error': 'Groq client not initialized'}, status=500)
+            return Response({'error': 'AI service unavailable. Please check your GROQ_API_KEY.'}, status=500)
         
         # Health condition restrictions
         health_restrictions = {
             'diabetes': """
                 - NO sugar, NO desserts, NO sweet dishes
-                - NO white rice, use brown rice or quinoa instead
+                - NO primary-foreground rice, use brown rice or quinoa instead
                 - NO refined flour (maida), use whole wheat (atta) instead
                 - NO sugary drinks, lassi, or sweetened beverages
                 - NO sweet fruits like mangoes, bananas, grapes
@@ -108,129 +107,117 @@ def generate_and_save_meal_plan(request):
         
         # Dessert restriction for diabetes
         dessert_allowed = selected_health != 'diabetes'
-        
-        # Build the complete prompt
+        dessert_allowed_text = "NO desserts at all. Only seasonal drinks allowed." if not dessert_allowed else "Desserts allowed on Tuesday and Saturday as per schedule below."
+        current_season_text = "SUMMER" if current_season == "summer" else "WINTER"
+        summer_dishes_text = """
+           Summer-friendly Pakistani dishes (light, refreshing, seasonal):
+           - Light curries: Tori (Ridge Gourd), Lauki (Bottle Gourd), Karela (Bitter Gourd), Bhindi, Mix Sabzi
+           - Yogurt-based dishes: Dahi Bhalla, Raita, Lassi
+           - Grilled/BBQ: Seekh Kabab, Chicken Tikka, Fish Tikka, Boti Kabab
+           - Daal dishes: Daal Chawal, Maash Daal, Chana Daal (light)
+           - Seasonal fruits in meals: Mango, Watermelon, Cucumber Salad
+           - Mango-based desserts: Mango Delight, Aamras, Mango Kheer
+           ❌ Avoid heavy, extremely oily, or very heavy meat dishes on hot days
+        """ if current_season == "summer" else """
+           Winter-friendly Pakistani dishes (hearty, warming):
+           - Heavy meat dishes: Nihari, Haleem, Mutton Korma, Brain Masala, Paye, Siri Paye
+           - Warm soups: Chicken Soup, Mutton Soup, Daal Soup
+           - Root vegetables: Aloo, Gajar, Shaljam (Turnip), Mooli (Radish), Palak
+           - Winter special desserts: Gajar Ka Halwa, Sooji Halwa, Zarda, Sheer Khurma
+           - Warm drinks: Kashmiri Chai, Ginger Tea, Turmeric Milk (Haldi Doodh), Masala Chai
+        """
         prompt = f"""
-        You are a Pakistani nutritionist creating a 7-day meal plan.
+        You are a Pakistani nutritionist creating a 7-day meal plan for {current_season_text} season.
 
-        USER PREFERENCES:
-        - Health Condition: {selected_health}
-        - Dietary Preference: {selected_diet}
-        - Current Season: {current_season}
+        USER: Health={selected_health}, Diet={selected_diet}, Season={current_season}
 
-        HEALTH RESTRICTIONS FOR {selected_health.upper()}:
-        {health_restrictions.get(selected_health, health_restrictions['balanced'])}
+        HEALTH RULES: {health_restrictions.get(selected_health, health_restrictions['balanced'])}
 
-        DIETARY GUIDELINES FOR {selected_diet.upper()}:
-        {diet_guidelines.get(selected_diet, diet_guidelines['both'])}
+        DIET RULES: {diet_guidelines.get(selected_diet, diet_guidelines['both'])}
 
-        ⚠️⚠️⚠️ STRICT RULES - VIOLATION WILL RESULT IN INVALID RESPONSE ⚠️⚠️⚠️:
+        {current_season_text} SEASON GUIDELINES:{summer_dishes_text}
 
-        1. 🔴 ABSOLUTELY NO REPETITION: Every single meal (breakfast, lunch, dinner) for all 7 days must have a UNIQUE dish name. 
-           - No dish name should appear more than once in the entire 7-day plan
-           - Even across different meal types, dish names cannot repeat
+        STRICT RULES:
 
-        2. 🌅 BREAKFAST SCHEDULE:
-           - Monday to Friday (Weekdays): Light breakfast (Oatmeal, Cornflakes, Porridge, Boiled Eggs, Toast, Yogurt with Fruits, Scrambled Eggs, French Toast, Pancakes)
-           - Saturday and Sunday (Weekends): Heavy breakfast (Halwa Puri, Chana Chaat, Anda Paratha, Nihari, Paye, Siri Paye)
+        1. NO REPETITION: All 21 meals must have UNIQUE names. No dish appears twice in the week.
 
-        3. ⚖️ LUNCH/DINNER BALANCE:
-           - If lunch is heavy → dinner must be light
-           - If lunch is light → dinner can be heavy
-           - Heavy examples: Karahi, Handi, Biryani, Nihari, Haleem, Kofta, Pulao, Korma
-           - Light examples: Daal Chawal, Khichdi, Soup with Salad, Grilled items, Bhindi, Sabzi
+        2. BREAKFAST — ONLY real Pakistani breakfast dishes:
+           Weekdays (light): Anda Paratha, Aloo Paratha, Omelette, Eggs, Chanay, Daliya, Toast, Yogurt, Lassi
+           Weekends (heavy): Nihari, Paye, Halwa Puri, Chana Chaat, Brain Masala, Fried Fish
+           ❌ NO snacks (pakoras, samosas, rolls, patties), NO lunch/dinner items (biryani, karahi, daal chawal)
 
-        4. 🥘 BOTH DIETARY PREFERENCE RULES:
-           - Lunch non-veg → Dinner veg
-           - Lunch veg → Dinner non-veg
-           - Non-veg options: Chicken, Mutton, Beef, Fish, Eggs
-           - Veg options: Daal, Sabzi, Paneer, Mushroom, Tofu
+        3. LUNCH — Pakistani lunch dishes (snacks allowed max 2 times in week):
+           Main dishes: Biryani, Pulao, Chicken/Mutton Karahi, Nihari, Haleem, Korma, Handi, Daal Gosht, Kofta, Fish Curry, Daal Chawal, Khichdi, Mix Sabzi, Bhindi, Aloo Bhujia, Chana/Mash Daal, Palak Paneer
+           Snacks allowed (max 2 times in week in lunch or dinner): Pakoras, Samosas, Rolls, Patties, Chaat items, Fruit Chaat
+           ❌ NO breakfast items in lunch
 
-        5. 🍰 DESSERT & DRINK SCHEDULE (IMPORTANT - Add as "side" field):
-           - Tuesday and Saturday: DESSERT (type: "dessert") f"For {current_season.upper()} DRINKS (use appropriate season):"
-           - Monday, Wednesday, Thursday, Friday, Sunday: SEASONAL DRINK (type: "drink")
-           
-           DESSERT OPTIONS (use only if health condition allows):
-           - Kheer, Gajar ka Halwa, Sooji Halwa, Zarda, Ras Malai, Gulab Jamun, Jalebi, Barfi, Sheer Khurma, Firni, Rabri, Qulfi, Falooda
-           
-           {f'For {current_season.upper()} DRINKS (use appropriate season):'}
+        4. DINNER — Pakistani dinner dishes (snacks allowed max 2 times in week):
+           Main dishes: Chicken Karahi/Handi, Mutton Korma, Biryani, Pulao, Haleem, BBQ (Seekh Kabab, Chicken Tikka), Daal Chawal, Khichdi, Bhindi, Mix Sabzi, Soup, Salad, Grilled Chicken/Fish, Palak Paneer
+           Snacks allowed (max 2 times in week, shared with lunch): Pakoras, Samosas, Rolls, Patties, Chaat items, Fruit Chaat
+           ❌ NO breakfast items in dinner
 
-           SUMMER DRINKS (April-September):
-           - Mango Lassi, Sweet Lassi, Salted Lassi, Rooh Afza, Lemon Sherbet, Sattu Drink, Watermelon Juice, Sugarcane Juice, Mint Margarita, Thandai, Chaach (Buttermilk), Aam Panna, Coconut Water
-           
-           WINTER DRINKS (October-March):
-           - Kashmiri Chai (Noon Chai), Doodh Patti, Ginger Tea, Hot Chocolate, Almond Milk, Cinnamon Tea, Suleimani Chai, Masala Chai, Coffee, Green Tea with Honey, Turmeric Milk (Haldi Doodh)
+        5. LUNCH/DINNER BALANCE: Heavy lunch → light dinner. Light lunch → heavy dinner.
 
-        6. 📋 MUST INCLUDE (without repetition):
-           - At least 2 different daal (lentil) dishes
-           - At least 1 fish dish (for non-veg only)
-           - At least 3 different vegetable dishes
-           - At least 1 breakfast with eggs
-           - Friday special lunch/dinner (Biryani, Pulao, or any special dish)
+        6. DIET ('both' preference): Lunch non-veg → dinner veg. Lunch veg → dinner non-veg.
 
-        7. ✅ DISH NAMING RULES:
-           - Use ONLY real, authentic Pakistani dish names
-           - NEVER add "Pakistani" suffix
-           - DO NOT invent or generate fake dish names
+        7. SIDE (dessert/drink) — {current_season_text} variety, no 2 same drinks/desserts in week:
+           - {dessert_allowed_text}
+           - Tue/Sat: dessert (if health allows). Other days: drink.
+           - Diabetes: ONLY sugar-free drinks, no sweet lassi
+           - {current_season_text} desserts: Mango Delight, Cold Kheer, Falooda, Qulfi, Rabri, Gajar Ka Halwa{'' if current_season == 'summer' else ', Sheer Khurma, Sooji Halwa, Zarda'}
+           - {current_season_text} drinks: {'Mango Lassi, Sweet/Salted Lassi, Rooh Afza, Lemon Sherbet, Sattu, Watermelon Juice, Sugarcane Juice, Mint Margarita, Thandai, Chaach, Aam Panna, Coconut Water' if current_season == 'summer' else 'Kashmiri Chai, Doodh Patti, Ginger Tea, Hot Chocolate, Masala Chai, Coffee, Turmeric Milk'}
+           - Ensure variety — don't repeat the same drink or dessert twice
 
-        OUTPUT FORMAT - Return ONLY valid JSON. NO other text before or after:
+        8. MUST INCLUDE (no repeats): 2+ daal dishes, 1 fish (non-veg/both), 3+ veg dishes, 2+ egg breakfasts, Friday special dish
 
+        9. ALL DISHES from YouTube channels only:
+           SooperChef, Food Fusion, Baba Food Secrets, Kun Foods, Kitchen With Amna, Muhammad Danial, Ijaz Ansari Food Secrets
+           ❌ DO NOT invent names. Every title must be YouTube-searchable from these channels.
+           ❌ NO channel name, "(channel)", or "Recipe" in title. NO "Pakistani" suffix.
+
+        10. ROMAN URDU: All titles in Roman Urdu. Examples: "Anda Paratha", "Murgh Cholay", "Degi Biryani", "Chicken White Handi", "Mango Delight"
+
+        11. Ingredients/directions must match actual recipe from that YouTube channel.
+
+        OUTPUT valid JSON only:
         {{
             "weekly_plan": [
                 {{
                     "day": "Monday",
-                    "breakfast": {{
-                        "title": "unique dish name",
-                        "description": "brief description",
-                        "calories": 300-450,
-                        "prep_time": 15-30,
-                        "dietary_type": "veg/non_veg"
-                    }},
-                    "lunch": {{
-                        "title": "unique dish name (different from breakfast)",
-                        "description": "brief description",
-                        "calories": 400-550,
-                        "prep_time": 25-45,
-                        "dietary_type": "veg/non_veg"
-                    }},
-                    "dinner": {{
-                        "title": "unique dish name (different from breakfast and lunch)",
-                        "description": "brief description",
-                        "calories": 350-500,
-                        "prep_time": 20-40,
-                        "dietary_type": "veg/non_veg"
-                    }},
-                    "side": {{
-                        "title": "dessert or drink name",
-                        "type": "dessert/drink",
-                        "description": "brief description"
-                    }}
+                    "breakfast": {{"title":"Roman Urdu dish","description":"...","calories":300-450,"prep_time":15-30,"dietary_type":"veg/non_veg"}},
+                    "lunch": {{"title":"Roman Urdu dish","description":"...","calories":400-550,"prep_time":25-45,"dietary_type":"veg/non_veg"}},
+                    "dinner": {{"title":"Roman Urdu dish","description":"...","calories":350-500,"prep_time":20-40,"dietary_type":"veg/non_veg"}},
+                    "side": {{"title":"dessert/drink","type":"dessert/drink","description":"..."}}
                 }}
             ]
         }}
-
-        IMPORTANT: All 21 meals (7 breakfasts + 7 lunches + 7 dinners) must have COMPLETELY UNIQUE dish names. NO REPETITION ALLOWED!
         """
 
         completion = groq_client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=[
-                {"role": "system", "content": "You are a professional Pakistani nutritionist and chef. You MUST ensure NO dish name repeats across the entire 7-day plan. Every meal must have a unique name. Use real Pakistani dishes only. Respond ONLY in valid JSON."},
+                {"role": "system", "content": "You are a professional Pakistani nutritionist and chef. You MUST ensure NO dish name repeats across the entire 7-day plan. Every meal must have a unique name. ONLY use real dish names from SooperChef, Food Fusion, Baba Food Secrets, Kun Foods, Kitchen With Amna, Muhammad Danial, and Ijaz Ansari Food Secrets YouTube channels. ALL dish names MUST be in Roman Urdu. NEVER invent or generate fake dish names. NEVER include channel name or 'Recipe' in the title. Respond ONLY in valid JSON."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.6,
-            max_tokens=4000
+            temperature=0.85,
+            max_tokens=4096
         )
 
         response_text = completion.choices[0].message.content.strip()
         
-        # Extract JSON
-        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-        if not json_match:
-            print(f"Failed to parse JSON. Response: {response_text[:500]}")
-            return Response({'error': 'AI failed to generate valid JSON'}, status=500)
+        # Extract JSON - handle both raw JSON and markdown code blocks
+        json_match = re.search(r'```(?:json)?\s*\n?(\{.*?\})\n?\s*```', response_text, re.DOTALL)
+        if json_match:
+            json_str = json_match.group(1)
+        else:
+            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+            if json_match:
+                json_str = json_match.group()
+            else:
+                print(f"Failed to parse JSON. Response: {response_text[:500]}")
+                return Response({'error': 'AI failed to generate valid JSON'}, status=500)
             
-        data = json.loads(json_match.group())
+        data = json.loads(json_str)
         weekly_plan = data.get('weekly_plan', [])
 
         # Deactivate old plans
@@ -253,9 +240,21 @@ def generate_and_save_meal_plan(request):
             'dietary_preference': saved_plan.dietary_preference
         }, status=status.HTTP_201_CREATED)
 
+    except AuthenticationError as e:
+        print(f"Groq auth error: {e}")
+        return Response({'error': 'Invalid or expired GROQ_API_KEY. Please update your API key.'}, status=500)
+    except RateLimitError as e:
+        print(f"Groq rate limit: {e}")
+        return Response({'error': 'AI service is rate limited. Please try again later.'}, status=429)
+    except APIStatusError as e:
+        print(f"Groq API error: {e}")
+        return Response({'error': f'AI service error: {e.message}'}, status=500)
+    except json.JSONDecodeError as e:
+        print(f"JSON decode error: {e}")
+        return Response({'error': 'AI generated invalid response. Please try again.'}, status=500)
     except Exception as e:
         print(f"Meal plan generation error: {e}")
-        return Response({'error': str(e)}, status=500)
+        return Response({'error': f'Unexpected error: {str(e)}'}, status=500)
 
 
 @api_view(['GET'])

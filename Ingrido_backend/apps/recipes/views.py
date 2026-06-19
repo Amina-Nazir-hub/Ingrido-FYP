@@ -14,8 +14,9 @@ from groq import Groq
 
 from .models import City, Recipe, AIGeneratedRecipe
 from .serializers import CitySerializer, RecipeListSerializer, RecipeDetailSerializer
-from .services import fetch_youtube_video_id, get_groq_client
+from .services import fetch_youtube_video_id, get_groq_client, CHANNEL_NAMES
 from apps.common.services import get_ai_generated_image
+from django.core.files.storage import default_storage
 
 load_dotenv()
 
@@ -87,7 +88,7 @@ def recipe_detail(request, pk):
             'is_low_fat': recipe.is_low_fat,
         }
         
-        if recipe.image:
+        if recipe.image and default_storage.exists(recipe.image.name):
             if request:
                 data['image'] = request.build_absolute_uri(recipe.image.url)
             else:
@@ -157,16 +158,74 @@ def get_ai_recipe_detail(request, recipe_title):
             'is_saved': False,
         })
 
+    # Create a default entry first so subsequent requests always find cache
+    default_recipe, created = AIGeneratedRecipe.objects.get_or_create(
+        title__iexact=recipe_title,
+        defaults={
+            'title': recipe_title,
+            'description': f'A traditional Pakistani dish.',
+            'ingredients': 'Ingredients not available',
+            'instructions': 'Instructions not available',
+            'prep_time': 30,
+            'kcal': 400,
+            'cuisine': 'Pakistani',
+            'dietary_type': 'mixed',
+            'spice_level': 'Medium',
+            'youtube_video_id': fetch_youtube_video_id(recipe_title, restrict_to_channels=True),
+            'image_url': get_ai_generated_image(recipe_title),
+            'view_count': 1
+        }
+    )
+    if not created:
+        # Cache hit from concurrent request
+        default_recipe.view_count += 1
+        default_recipe.save()
+        return Response({
+            'title': default_recipe.title,
+            'description': default_recipe.description,
+            'ingredients': default_recipe.ingredients,
+            'instructions': default_recipe.instructions,
+            'prep_time': default_recipe.prep_time,
+            'kcal': default_recipe.kcal,
+            'cuisine': default_recipe.cuisine,
+            'dietary_type': default_recipe.dietary_type,
+            'spice_level': default_recipe.spice_level,
+            'youtube_video_id': default_recipe.youtube_video_id,
+            'image': default_recipe.image_url if default_recipe.image_url else get_ai_generated_image(recipe_title),
+            'is_ai_generated': True,
+            'is_saved': False,
+        })
+
     if not groq_client:
-        return Response({'error': 'AI service not configured'}, status=503)
+        return Response({
+            'title': default_recipe.title,
+            'description': default_recipe.description,
+            'ingredients': default_recipe.ingredients,
+            'instructions': default_recipe.instructions,
+            'prep_time': default_recipe.prep_time,
+            'kcal': default_recipe.kcal,
+            'cuisine': default_recipe.cuisine,
+            'dietary_type': default_recipe.dietary_type,
+            'spice_level': default_recipe.spice_level,
+            'youtube_video_id': default_recipe.youtube_video_id,
+            'image': default_recipe.image_url if default_recipe.image_url else get_ai_generated_image(recipe_title),
+            'is_ai_generated': True,
+            'is_saved': False,
+        })
+
+    channels_str = ', '.join(CHANNEL_NAMES)
 
     prompt = f"""Generate a detailed Pakistani recipe for "{recipe_title}".
+
+    This dish is from one of these YouTube channels: {channels_str}.
+    Follow the authentic cooking style and ingredients typical of these channels.
+
     Return ONLY valid JSON with this exact structure:
     {{
         "title": "{recipe_title}",
         "description": "Brief description of the dish",
-        "ingredients": "List of ingredients, each on new line",
-        "instructions": "Step by step instructions, each step on new line",
+        "ingredients": "List of ingredients with measurements, each on new line",
+        "instructions": "Step by step cooking instructions as shown in YouTube cooking videos, each step on new line",
         "prep_time": 45,
         "kcal": 420,
         "cuisine": "Pakistani",
@@ -174,6 +233,7 @@ def get_ai_recipe_detail(request, recipe_title):
         "spice_level": "Medium"
     }}
     Make sure prep_time and kcal are integers.
+    Make ingredients and instructions detailed and authentic to Pakistani cooking channels.
     """
 
     try:
@@ -183,7 +243,8 @@ def get_ai_recipe_detail(request, recipe_title):
                 {"role": "system", "content": "You are a professional Pakistani chef. Respond ONLY with valid JSON."},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.7
+            temperature=0.7,
+            timeout=30
         )
         
         response_text = completion.choices[0].message.content.strip()
@@ -203,43 +264,56 @@ def get_ai_recipe_detail(request, recipe_title):
         except (ValueError, TypeError):
             recipe_data['prep_time'] = 30
 
-        video_id = fetch_youtube_video_id(recipe_title)
-        ai_image = get_ai_generated_image(recipe_title)
-        
-        saved_recipe = AIGeneratedRecipe.objects.create(
-            title=recipe_title,
-            description=recipe_data.get('description', ''),
-            ingredients=recipe_data.get('ingredients', ''),
-            instructions=recipe_data.get('instructions', ''),
-            prep_time=recipe_data.get('prep_time', 30),
-            kcal=recipe_data.get('kcal', 400),
-            cuisine=recipe_data.get('cuisine', 'Pakistani'),
-            dietary_type=recipe_data.get('dietary_type', 'mixed'),
-            spice_level=recipe_data.get('spice_level', 'Medium'),
-            youtube_video_id=video_id,
-            image_url=ai_image,
-            view_count=1
-        )
-        
+        video_id = fetch_youtube_video_id(recipe_title, restrict_to_channels=True) or default_recipe.youtube_video_id
+        ai_image = get_ai_generated_image(recipe_title) or default_recipe.image_url
+
+        default_recipe.description = recipe_data.get('description', default_recipe.description)
+        default_recipe.ingredients = recipe_data.get('ingredients', default_recipe.ingredients)
+        default_recipe.instructions = recipe_data.get('instructions', default_recipe.instructions)
+        default_recipe.prep_time = recipe_data.get('prep_time', default_recipe.prep_time)
+        default_recipe.kcal = recipe_data.get('kcal', default_recipe.kcal)
+        default_recipe.cuisine = recipe_data.get('cuisine', default_recipe.cuisine)
+        default_recipe.dietary_type = recipe_data.get('dietary_type', default_recipe.dietary_type)
+        default_recipe.spice_level = recipe_data.get('spice_level', default_recipe.spice_level)
+        default_recipe.youtube_video_id = video_id
+        default_recipe.image_url = ai_image
+        default_recipe.save()
+
         return Response({
-            'title': saved_recipe.title,
-            'description': saved_recipe.description,
-            'ingredients': saved_recipe.ingredients,
-            'instructions': saved_recipe.instructions,
-            'prep_time': saved_recipe.prep_time,
-            'kcal': saved_recipe.kcal,
-            'cuisine': saved_recipe.cuisine,
-            'dietary_type': saved_recipe.dietary_type,
-            'spice_level': saved_recipe.spice_level,
-            'youtube_video_id': saved_recipe.youtube_video_id,
-            'image': saved_recipe.image_url,
+            'title': default_recipe.title,
+            'description': default_recipe.description,
+            'ingredients': default_recipe.ingredients,
+            'instructions': default_recipe.instructions,
+            'prep_time': default_recipe.prep_time,
+            'kcal': default_recipe.kcal,
+            'cuisine': default_recipe.cuisine,
+            'dietary_type': default_recipe.dietary_type,
+            'spice_level': default_recipe.spice_level,
+            'youtube_video_id': default_recipe.youtube_video_id,
+            'image': default_recipe.image_url,
             'is_ai_generated': True,
             'is_saved': False,
         })
-        
+
     except Exception as e:
         print(f"AI Recipe Error: {e}")
-        return Response({'error': f"AI Recipe Error: {str(e)}"}, status=500)
+        default_recipe.view_count = 0
+        default_recipe.save()
+        return Response({
+            'title': default_recipe.title,
+            'description': default_recipe.description,
+            'ingredients': default_recipe.ingredients,
+            'instructions': default_recipe.instructions,
+            'prep_time': default_recipe.prep_time,
+            'kcal': default_recipe.kcal,
+            'cuisine': default_recipe.cuisine,
+            'dietary_type': default_recipe.dietary_type,
+            'spice_level': default_recipe.spice_level,
+            'youtube_video_id': default_recipe.youtube_video_id,
+            'image': default_recipe.image_url if default_recipe.image_url else get_ai_generated_image(recipe_title),
+            'is_ai_generated': True,
+            'is_saved': False,
+        })
 
 # ========== AI SUBSTITUTE ==========
 @api_view(['POST'])
@@ -384,21 +458,26 @@ def search_ai_recipes_list(request):
     if len(db_recipes) >= 3 or not groq_client:
         return Response(db_serialized)
 
-    # 2. Strict Unified Prompt (Combines ingredients into real dishes)
+    # 2. Prompt for relevant dish suggestions
     prompt = f"""You are a precise backend API for a Pakistani Recipe App. 
-The user has entered these input ingredient(s): "{query}".
+User search query: "{query}"
 
-### CRITICAL RULES:
-1. **COMBINE INGREDIENTS:** Do NOT generate separate recipes for each ingredient. You must only suggest 3 to 5 authentic traditional Pakistani dishes where ALL (or the main) ingredients listed in "{query}" are cooked TOGETHER in the same dish.
-2. **STRICT PAKISTANI AUTHENTICITY:** The dishes must be real, well-known recipes featured on authentic platforms like 'Food Fusion' or 'SooperChef' (e.g., if input is "aloo, gobi, carrot", the dish should be "Pakistani Mixed Sabzi Masala"). 
-3. **INVALID COMBINATIONS:** If the combination of ingredients in "{query}" makes no sense in traditional Pakistani cooking, or contains non-food junk words, you MUST return a completely empty JSON array `[]`. Do not make up fake fusion dishes.
-4. **DYNAMIC ACCURACY:** Calculate realistic 'kcal' and 'prep_time' integers based on that specific combined dish.
-5. **OUTPUT:** Return ONLY a valid JSON array. No conversational text, no explanations.
+This could be a dish name (e.g., "biryani", "karahi") or ingredient(s) (e.g., "chicken", "aloo, gobi").
+
+### RULES:
+1. Suggest 3 to 5 authentic traditional Pakistani dishes RELEVANT to "{query}".
+   - If query is a dish name → suggest variants of that dish (e.g., "biryani" → "Chicken Biryani", "Sindhi Biryani", "Bombay Biryani")
+   - If query is ingredients → suggest dishes that use those ingredients (e.g., "chicken" → "Chicken Karahi", "Chicken Tikka", "Chicken Korma")
+   - If query has multiple ingredients → suggest dishes that combine them (e.g., "aloo, gobi" → "Aloo Gobi", "Mixed Sabzi")
+2. Only suggest REAL, well-known Pakistani dishes. Do NOT make up fusion dishes.
+3. If "{query}" makes no sense (non-food, junk words), return empty array [].
+4. Calculate realistic 'kcal' and 'prep_time' for each dish.
+5. Return ONLY valid JSON array. No extra text.
 
 ### JSON Schema:
 [
   {{
-    "title": "Exact Authentic Combined Dish Name",
+    "title": "Authentic Pakistani Dish Name",
     "kcal": 420, 
     "prep_time": 35
   }}

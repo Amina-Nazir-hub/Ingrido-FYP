@@ -1,4 +1,3 @@
-
 # Register your models here.
 # apps/common/admin.py
 from django.contrib import admin

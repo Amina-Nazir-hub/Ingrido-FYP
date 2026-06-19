@@ -49,7 +49,9 @@ const WelcomeHero = ({ name }) => {
   return (
     <section className="flex flex-col items-center justify-center w-full pt-20 pb-8 relative">
       <div className="w-full max-w-2xl text-center mb-6">
-        <h2 className="text-lg font-medium text-primary">Hello, {name}!</h2>
+        <h2 className="text-lg font-medium text-primary-foreground">
+          Hello, {name}!
+        </h2>
         <h1 className="text-3xl md:text-4xl font-bold">
           What are we cooking today?
         </h1>

@@ -1,5 +1,6 @@
 from urllib.parse import quote
 from rest_framework import serializers
+from django.core.files.storage import default_storage
 from .models import City, Recipe, AIGeneratedRecipe
 from apps.common.services import get_ai_generated_image
 
@@ -18,14 +19,13 @@ class RecipeListSerializer(serializers.ModelSerializer):
     is_saved = serializers.SerializerMethodField()
     kcal = serializers.SerializerMethodField()
     category = serializers.SerializerMethodField()
-
     class Meta:
         model = Recipe
         fields = ['id', 'title', 'image', 'prep_time', 'kcal', 'category', 'is_saved']
 
     def get_image(self, obj):
         request = self.context.get('request')
-        if obj.image:
+        if obj.image and default_storage.exists(obj.image.name):
             if request:
                 return request.build_absolute_uri(obj.image.url)
             return obj.image.url
@@ -58,7 +58,7 @@ class RecipeDetailSerializer(serializers.ModelSerializer):
 
     def get_image(self, obj):
         request = self.context.get('request')
-        if obj.image:
+        if obj.image and default_storage.exists(obj.image.name):
             if request:
                 return request.build_absolute_uri(obj.image.url)
             return obj.image.url

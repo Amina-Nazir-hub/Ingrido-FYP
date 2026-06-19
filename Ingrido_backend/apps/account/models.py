@@ -24,7 +24,6 @@ class SavedRecipe(models.Model):
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
     saved_at = models.DateTimeField(auto_now_add=True)
     
-    # ✅ YEH FIELD ADD KARO
     image_url = models.CharField(max_length=500, blank=True, null=True)
     
     class Meta:

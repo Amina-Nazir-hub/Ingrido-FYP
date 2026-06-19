@@ -1,9 +1,6 @@
 from django.db import models
 
 # Create your models here.
-# apps/common/models.py
-# APNE PURANE MODELS KE NEECHE YEH ADD KARO
-
 class GeneratedImageCache(models.Model):
     """Cache for AI generated images to avoid repeated API calls"""
     dish_name = models.CharField(max_length=255, unique=True, db_index=True)
