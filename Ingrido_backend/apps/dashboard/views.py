@@ -14,7 +14,6 @@ from apps.recipes.services import get_groq_client, fetch_seasonal_dishes, clean_
 from apps.common.services import get_ai_generated_image
 from apps.common.models import GeneratedImageCache
 
-
 def get_current_season():
     """Get current season based on month"""
     month = datetime.now().month

@@ -1,5 +1,6 @@
 import { Flame, Clock, Drumstick, Bookmark, Eye } from "lucide-react";
-import { BACKEND_URL, DEFAULT_IMAGE } from "../constants";
+import { DEFAULT_IMAGE } from "../constants";
+import { BACKEND_URL } from "../../../config/api";
 
 const RecipeCard = ({
   id,

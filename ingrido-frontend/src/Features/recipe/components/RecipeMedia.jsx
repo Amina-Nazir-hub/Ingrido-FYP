@@ -1,5 +1,5 @@
 import { Utensils } from "lucide-react";
-import { BACKEND_URL } from "../constants";
+import { BACKEND_URL } from "../../../config/api";
 import { getFullImageUrl } from "../utils/recipeUtils";
 
 const RecipeMedia = ({ recipe, displayTitle }) => {
