@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from urllib.parse import urlparse
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -58,12 +59,24 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'ingrido_db',
+#         'USER': 'postgres',
+#         'PASSWORD': 'pakpost000'
+#     }
+# }
+
+tmp = urlparse(os.getenv('DATABASE_URL'))
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'ingrido_db',
-        'USER': 'postgres',
-        'PASSWORD': 'pakpost000'
+        'NAME': tmp.path[1:],
+        'USER': tmp.username,
+        'PASSWORD': tmp.password,
+        'HOST': tmp.hostname,
+        'PORT': tmp.port,
     }
 }
 
