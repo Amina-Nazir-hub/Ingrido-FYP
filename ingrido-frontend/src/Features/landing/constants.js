@@ -26,3 +26,4 @@ export const FEATURES = [
 ];
 
 export const HERO_IMAGE = "/assets/hero-food.jpg";
+export const DEMO_VIDEO_URL = "/video/Watch%20Demo%20Video.mp4";
