@@ -59,26 +59,26 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': 'ingrido_db',
-#         'USER': 'postgres',
-#         'PASSWORD': 'pakpost000'
-#     }
-# }
-
-tmp = urlparse(os.getenv('DATABASE_URL'))
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': tmp.path[1:],
-        'USER': tmp.username,
-        'PASSWORD': tmp.password,
-        'HOST': tmp.hostname,
-        'PORT': tmp.port,
+        'NAME': 'ingrido_db',
+        'USER': 'postgres',
+        'PASSWORD': 'anb'
     }
 }
+
+# tmp = urlparse(os.getenv('DATABASE_URL'))
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': tmp.path[1:],
+#         'USER': tmp.username,
+#         'PASSWORD': tmp.password,
+#         'HOST': tmp.hostname,
+#         'PORT': tmp.port,
+#     }
+# }
 
 AUTH_USER_MODEL = 'account.User'
 
