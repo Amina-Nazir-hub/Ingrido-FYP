@@ -48,12 +48,14 @@ export function BookmarkProvider({ children }) {
     const effectiveIsAI = isAI || isSeasonal;
 
     if (effectiveIsAI) {
+      const lowerId = id ? id.toString().toLowerCase() : '';
+      const lowerTitle = title ? title.toLowerCase() : '';
       return bookmarkedRecipes.some(
         (recipe) =>
           recipe.is_ai_generated === true &&
-          (recipe.title === title ||
-            recipe.title === id ||
-            recipe.recipe_id === id),
+          (recipe.title?.toLowerCase() === lowerTitle ||
+            recipe.title?.toLowerCase() === lowerId ||
+            recipe.recipe_id?.toString().toLowerCase() === lowerId),
       );
     }
     return bookmarkedRecipes.some(

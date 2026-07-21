@@ -82,31 +82,29 @@ def _build_dish_prompt(dish_name):
 def search_pollinations_image(dish_name, width=768, height=768):
     """
     Generate dish image using Pollinations.ai
-    Endpoint: GET /image/{prompt}
-    Model: flux (default)
+    Endpoint: GET https://image.pollinations.ai/prompt/{prompt}
+    Model: flux (default). API key optional (enables higher rate limits).
     """
     try:
-        api_key = os.getenv("POLLINATIONS_API_KEY")
-        if not api_key:
-            print(f"❌ POLLINATIONS_API_KEY not configured")
-            return None
-
         prompt = _build_dish_prompt(dish_name)
+        api_key = os.getenv("POLLINATIONS_API_KEY")
 
-        url = "https://gen.pollinations.ai/image/" + quote(prompt)
+        url = "https://image.pollinations.ai/prompt/" + quote(prompt)
         params = {
             "width": width,
             "height": height,
             "model": "flux",
             "nologo": "true",
-            "key": api_key
+            "seed": abs(hash(dish_name)) % 1000000,
         }
+        if api_key:
+            params["key"] = api_key
 
         print(f"🖼️ Pollinations generating: {dish_name}")
         print(f"Prompt: {prompt[:100]}...")
-        img_resp = requests.get(url, params=params, timeout=15)
+        img_resp = requests.get(url, params=params, timeout=30)
 
-        if img_resp.status_code == 200:
+        if img_resp.status_code == 200 and img_resp.headers.get('Content-Type', '').startswith('image/'):
             safe_name = dish_name.replace(' ', '_').replace('/', '_').lower()
             filename = f"ai_images/{safe_name}_{uuid.uuid4().hex[:8]}.jpg"
             saved_path = default_storage.save(filename, ContentFile(img_resp.content))

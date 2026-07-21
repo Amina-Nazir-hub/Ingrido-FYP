@@ -31,15 +31,22 @@ export const formatInstructions = (instructions) => {
   }
   
   if (typeof cleanInstructions === 'string') {
-    const numberedMatch = cleanInstructions.match(/\d+[\.\)\-]\s/g);
+    // Try splitting on newlines first (AI returns newline-separated steps)
+    let steps = cleanInstructions.split(/[\r\n]+/).map(s => s.trim()).filter(Boolean);
     
-    if (numberedMatch) {
-      const steps = cleanInstructions.split(/\d+[\.\)\-]\s/);
-      return steps.filter(step => step && step.trim());
-    } else {
-      const steps = cleanInstructions.split(/[\n\r]+|\.\s*/);
-      return steps.filter(step => step && step.trim());
+    // If only one step resulted, try numbered list pattern
+    if (steps.length <= 1) {
+      const numberedMatch = cleanInstructions.match(/\d+[\.\)\-]\s/g);
+      if (numberedMatch) {
+        steps = cleanInstructions.split(/\d+[\.\)\-]\s/).filter(step => step && step.trim());
+      } else {
+        // Split on sentence boundaries as last resort
+        steps = cleanInstructions.split(/(?<=\.)\s+(?=[A-Z])/).filter(step => step && step.trim());
+      }
     }
+    
+    // Clean each step: strip leading numbers/bullets
+    return steps.map(step => step.replace(/^[\d\.\)\-\*•\s]+/, '').trim()).filter(Boolean);
   }
   
   return [];
@@ -76,9 +83,16 @@ export const formatIngredients = (ingredients) => {
   }
   
   if (typeof cleanIngredients === 'string') {
-    // Purana smart split logic jo normal text strings ke liye perfect chal raha tha
-    const items = cleanIngredients.split(/[\n\r]+|,\s*(?=\d|\d+\/\d|[A-Z])/);
-    return items.filter(item => item && item.trim());
+    // AI recipes return newline-separated ingredients; DB recipes may use commas.
+    let items = cleanIngredients.split(/[\r\n]+/).map(s => s.trim()).filter(Boolean);
+    
+    // If newlines didn't produce multiple items, split on commas.
+    if (items.length <= 1) {
+      items = cleanIngredients.split(/,\s*/).map(s => s.trim()).filter(Boolean);
+    }
+    
+    // Clean leading bullets/numbers
+    return items.map(item => item.replace(/^[\d\.\)\-\*•\s]+/, '').trim()).filter(Boolean);
   }
   
   return [];

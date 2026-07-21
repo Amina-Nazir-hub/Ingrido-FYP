@@ -139,7 +139,16 @@ def get_ai_recipe_detail(request, recipe_title):
     groq_client = get_groq_client()
 
     cached_recipe = AIGeneratedRecipe.objects.filter(title__iexact=recipe_title).first()
-    if cached_recipe:
+    is_placeholder = (
+        cached_recipe is not None
+        and (
+            not cached_recipe.ingredients
+            or cached_recipe.ingredients == 'Ingredients not available'
+            or not cached_recipe.instructions
+            or cached_recipe.instructions == 'Instructions not available'
+        )
+    )
+    if cached_recipe and not is_placeholder:
         cached_recipe.view_count += 1
         cached_recipe.save()
         return Response({
@@ -177,24 +186,10 @@ def get_ai_recipe_detail(request, recipe_title):
         }
     )
     if not created:
-        # Cache hit from concurrent request
+        # Existing placeholder from a previous failed attempt — increment view
+        # count but fall through to Groq regeneration below.
         default_recipe.view_count += 1
         default_recipe.save()
-        return Response({
-            'title': default_recipe.title,
-            'description': default_recipe.description,
-            'ingredients': default_recipe.ingredients,
-            'instructions': default_recipe.instructions,
-            'prep_time': default_recipe.prep_time,
-            'kcal': default_recipe.kcal,
-            'cuisine': default_recipe.cuisine,
-            'dietary_type': default_recipe.dietary_type,
-            'spice_level': default_recipe.spice_level,
-            'youtube_video_id': default_recipe.youtube_video_id,
-            'image': default_recipe.image_url if default_recipe.image_url else get_ai_generated_image(recipe_title),
-            'is_ai_generated': True,
-            'is_saved': False,
-        })
 
     if not groq_client:
         return Response({

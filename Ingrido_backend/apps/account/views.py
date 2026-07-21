@@ -131,7 +131,8 @@ def toggle_bookmark(request, recipe_id=None):
 @permission_classes([IsAuthenticated])
 def toggle_ai_bookmark(request, recipe_title):
     """Toggle bookmark for AI generated recipe"""
-    recipe_title = unquote(recipe_title).replace('-', ' ').title()
+    # Preserve original case; only replace hyphens with spaces.
+    recipe_title = unquote(recipe_title).replace('-', ' ').strip()
     
     # Get or create user profile
     profile, created = UserProfile.objects.get_or_create(user=request.user)
