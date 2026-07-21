@@ -72,11 +72,12 @@ tmp = urlparse(os.getenv('DATABASE_URL'))
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': tmp.path[1:],
+        'NAME': tmp.path[1:] if tmp.path.startswith('/') else tmp.path[1:],
         'USER': tmp.username,
         'PASSWORD': tmp.password,
         'HOST': tmp.hostname,
         'PORT': tmp.port,
+        'OPTIONS': {'sslmode': 'require'},
     }
 }
 

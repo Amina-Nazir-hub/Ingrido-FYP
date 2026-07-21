@@ -4,7 +4,7 @@ import django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
-from apps.models import City, Recipe
+from apps.recipes.models import City, Recipe
 
 def seed_database():
     print("🚀 Seeding started...")
